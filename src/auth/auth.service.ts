@@ -115,7 +115,7 @@ export class AuthService {
 
     const passwordOk = admin ? await bcrypt.compare(dto.password, admin.passwordHash) : false;
     if (!admin || !passwordOk) {
-      throw new UnauthorizedException('Email ya password sahi nahi hai');
+      throw new UnauthorizedException('Invalid email or password');
     }
 
     return {

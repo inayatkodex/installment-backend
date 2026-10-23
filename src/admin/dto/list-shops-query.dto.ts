@@ -10,16 +10,16 @@ export class ListShopsQueryDto {
   @ApiPropertyOptional({ enum: ['all', 'pending', 'active', 'inactive', 'archived'] })
   @IsOptional()
   @Transform(emptyToUndefined)
-  @IsIn(['all', 'pending', 'active', 'inactive', 'archived'], { message: 'Status sahi nahi hai' })
+  @IsIn(['all', 'pending', 'active', 'inactive', 'archived'], { message: 'Invalid status' })
   status?: 'all' | 'pending' | 'active' | 'inactive' | 'archived';
 
-  @ApiPropertyOptional({ enum: ['all', 'paid', 'unpaid'], description: 'Is mahine ki fee' })
+  @ApiPropertyOptional({ enum: ['all', 'paid', 'unpaid'], description: "This month's fee" })
   @IsOptional()
   @Transform(emptyToUndefined)
-  @IsIn(['all', 'paid', 'unpaid'], { message: 'Fee filter sahi nahi hai' })
+  @IsIn(['all', 'paid', 'unpaid'], { message: 'Invalid fee filter' })
   fee?: 'all' | 'paid' | 'unpaid';
 
-  @ApiPropertyOptional({ description: 'Shop, owner, mobile ya Shop ID (SH-101)' })
+  @ApiPropertyOptional({ description: 'Shop, owner, mobile or Shop ID (SH-101)' })
   @IsOptional()
   @IsString()
   search?: string;
@@ -27,15 +27,15 @@ export class ListShopsQueryDto {
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()
   @Transform(toNumber)
-  @IsInt({ message: 'Page sahi nahi hai' })
-  @Min(1, { message: 'Page sahi nahi hai' })
+  @IsInt({ message: 'Invalid page' })
+  @Min(1, { message: 'Invalid page' })
   page?: number;
 
-  @ApiPropertyOptional({ example: 8, description: 'Default 8, zyada se zyada 100' })
+  @ApiPropertyOptional({ example: 8, description: 'Default 8, maximum 100' })
   @IsOptional()
   @Transform(toNumber)
-  @IsInt({ message: 'Page size sahi nahi hai' })
-  @Min(1, { message: 'Page size sahi nahi hai' })
-  @Max(100, { message: 'Page size 100 se zyada nahi ho sakta' })
+  @IsInt({ message: 'Invalid page size' })
+  @Min(1, { message: 'Invalid page size' })
+  @Max(100, { message: 'Page size cannot be more than 100' })
   pageSize?: number;
 }

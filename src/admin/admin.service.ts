@@ -85,7 +85,7 @@ export class AdminService {
     const statusWhere: Prisma.ShopWhereInput =
       q.status && q.status !== 'all' ? { status: q.status } : {};
 
-    // Fee sirf active/inactive shops par lagti hai
+    // Fees apply only to active/inactive shops
     let feeWhere: Prisma.ShopWhereInput = {};
     if (q.fee === 'paid') {
       feeWhere = {
@@ -112,7 +112,7 @@ export class AdminService {
         include: { feeRecords: { where: { month: cur } } },
       }),
       this.prisma.shop.count({ where }),
-      // counts par sirf search lagta hai, status/fee filter nahi
+      // Counts use only the search filter, not the status/fee filters
       this.prisma.shop.groupBy({
         by: ['status'],
         where: search,
@@ -149,7 +149,7 @@ export class AdminService {
       where: { id },
       select: { id: true },
     });
-    if (!exists) throw new NotFoundException('Shop nahi mili');
+    if (!exists) throw new NotFoundException('Shop not found');
 
     const reason = dto.reason?.trim();
     const keepsNote = dto.status === 'inactive' || dto.status === 'archived';
@@ -165,7 +165,7 @@ export class AdminService {
         },
       });
 
-      // active/inactive hone par is mahine ka fee record (unpaid) bana dete hain
+      // Create an unpaid fee record for this month when the status is active/inactive
       if (feeApplies) {
         await tx.feeRecord.upsert({
           where: { shopId_month: { shopId: id, month: cur } },
@@ -184,17 +184,17 @@ export class AdminService {
       where: { id },
       select: { status: true },
     });
-    if (!shop) throw new NotFoundException('Shop nahi mili');
+    if (!shop) throw new NotFoundException('Shop not found');
 
     const where = { shopId_month: { shopId: id, month: dto.month } };
     const existing = await this.prisma.feeRecord.findUnique({ where });
 
-    // Purane mahine ka record na ho to nahi banta. Is mahine ka sirf active/inactive shop ka banta hai.
+    // Older months are not created when no record exists. This month's record is created only for active/inactive shops.
     const canCreate =
       dto.month === currentMonth() &&
       (shop.status === 'active' || shop.status === 'inactive');
     if (!existing && !canCreate) {
-      throw new NotFoundException('Is mahine ka fee record nahi mila');
+      throw new NotFoundException('Fee record not found for this month');
     }
 
     const data =
@@ -217,7 +217,7 @@ export class AdminService {
       where: { id },
       include: { feeRecords: { orderBy: { month: 'desc' }, take: 12 } },
     });
-    if (!shop) throw new NotFoundException('Shop nahi mili');
+    if (!shop) throw new NotFoundException('Shop not found');
     return this.mapShop(shop, true);
   }
 
@@ -233,7 +233,7 @@ export class AdminService {
     const digits = q.replace(/\D/g, '');
     if (digits) or.push({ mobile: { contains: digits } });
 
-    // "SH-101" jaisa Shop ID
+    // Shop ID such as "SH-101"
     const code = /^sh-?(\d{1,9})$/i.exec(q);
     if (code) or.push({ shopNo: Number(code[1]) - 100 });
 
@@ -245,7 +245,7 @@ export class AdminService {
     const feeApplies = shop.status === 'active' || shop.status === 'inactive';
     const currentRecord = shop.feeRecords.find((f) => f.month === cur);
 
-    // Pending/archived shop par is mahine ki fee nahi lagti (null)
+    // Pending/archived shops do not have a fee for this month (null)
     const feeStatus = feeApplies ? (currentRecord?.status ?? 'unpaid') : null;
 
     const history: FeeMonth[] = shop.feeRecords.map((f) => ({
@@ -254,7 +254,7 @@ export class AdminService {
       ...(f.paidOn ? { paidOn: dateOnly(f.paidOn) } : {}),
       ...(f.method ? { method: f.method } : {}),
     }));
-    // Naya mahina shuru ho gaya ho aur record abhi na bana ho to bhi row dikhe
+    // Show a row even if a new month has started and its record has not been created yet
     if (feeApplies && !currentRecord)
       history.unshift({ month: cur, status: 'unpaid' });
 

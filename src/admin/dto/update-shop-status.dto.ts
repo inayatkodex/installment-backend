@@ -6,15 +6,15 @@ export type ShopStatusValue = (typeof SHOP_STATUSES)[number];
 
 export class UpdateShopStatusDto {
   @ApiProperty({ enum: SHOP_STATUSES, example: 'active' })
-  @IsIn(SHOP_STATUSES, { message: 'Status sahi nahi hai' })
+  @IsIn(SHOP_STATUSES, { message: 'Invalid status' })
   status: ShopStatusValue;
 
   @ApiPropertyOptional({
-    example: 'CNIC ki tasveer saaf nahi thi.',
-    description: 'Sirf inactive ya archived par save hota hai',
+    example: 'CNIC photo was not clear.',
+    description: 'Saved only for inactive or archived',
   })
   @IsOptional()
   @IsString()
-  @MaxLength(300, { message: 'Wajah 300 huroof se zyada nahi ho sakti' })
+  @MaxLength(300, { message: 'Reason cannot be more than 300 characters' })
   reason?: string;
 }

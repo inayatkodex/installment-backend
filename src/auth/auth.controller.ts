@@ -41,8 +41,8 @@ export class AuthController {
   @Post('admin-auth/login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Admin login' })
-  @ApiOkResponse({ description: 'access_token aur user milta hai' })
-  @ApiUnauthorizedResponse({ description: 'Email ya password sahi nahi hai' })
+  @ApiOkResponse({ description: 'Returns access_token and user' })
+  @ApiUnauthorizedResponse({ description: 'Invalid email or password' })
   adminLogin(@Body() dto: AdminLoginDto) {
     return this.auth.adminLogin(dto);
   }

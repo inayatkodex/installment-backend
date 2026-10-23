@@ -3,14 +3,14 @@ import { IsBoolean, IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-vali
 
 export class AdminLoginDto {
   @ApiProperty({ example: 'admin@installmentpro.pk' })
-  @IsEmail({}, { message: 'Email sahi likhein' })
+  @IsEmail({}, { message: 'Enter a valid email' })
   email: string;
 
   @ApiProperty({ example: 'Admin@123', format: 'password' })
-  @IsString() @IsNotEmpty({ message: 'Password likhein' })
+  @IsString() @IsNotEmpty({ message: 'Enter your password' })
   password: string;
 
-  @ApiPropertyOptional({ example: false, description: 'true ho to token 7 din chalta hai, warna 1 din' })
+  @ApiPropertyOptional({ example: false, description: 'If true the token lasts 7 days, otherwise 1 day' })
   @IsOptional() @IsBoolean()
   rememberMe?: boolean;
 }

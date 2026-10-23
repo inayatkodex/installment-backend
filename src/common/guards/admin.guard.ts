@@ -17,18 +17,18 @@ export class AdminGuard implements CanActivate {
     const [type, token] = req.headers.authorization?.split(' ') ?? [];
 
     if (type !== 'Bearer' || !token) {
-      throw new UnauthorizedException('Pehle login karein');
+      throw new UnauthorizedException('Please log in first');
     }
 
     let payload: { sub: string; role: string };
     try {
       payload = await this.jwt.verifyAsync(token);
     } catch {
-      throw new UnauthorizedException('Session khatam ho gaya, dobara login karein');
+      throw new UnauthorizedException('Session expired, please log in again');
     }
 
     if (payload.role !== 'admin') {
-      throw new ForbiddenException('Yeh API sirf admin ke liye hai');
+      throw new ForbiddenException('This API is for admins only');
     }
 
     return true;

@@ -22,33 +22,33 @@ export class AdminController {
   constructor(private readonly admin: AdminService) {}
 
   @Get('dashboard')
-  @ApiOperation({ summary: 'Shops ki ginti aur is mahine ki fee ka summary' })
+  @ApiOperation({ summary: "Shop counts and this month's fee summary" })
   dashboard() {
     return this.admin.dashboard();
   }
 
   @Get('shops')
-  @ApiOperation({ summary: 'Shops ki list (filter, search, pagination)' })
+  @ApiOperation({ summary: 'List of shops (filter, search, pagination)' })
   list(@Query() query: ListShopsQueryDto) {
     return this.admin.listShops(query);
   }
 
   @Get('shops/:id')
-  @ApiOperation({ summary: 'Ek shop ki detail aur fee history' })
+  @ApiOperation({ summary: 'Single shop detail and fee history' })
   getShop(@Param('id') id: string) {
     return this.admin.getShop(id);
   }
 
   @Patch('shops/:id/status')
   @ApiOperation({
-    summary: 'Shop ka status badalna (kisi bhi status se kisi bhi status par)',
+    summary: 'Change shop status (any status to any status)',
   })
   setStatus(@Param('id') id: string, @Body() dto: UpdateShopStatusDto) {
     return this.admin.setStatus(id, dto);
   }
 
   @Patch('shops/:id/fee')
-  @ApiOperation({ summary: 'Kisi mahine ki fee paid ya unpaid mark karna' })
+  @ApiOperation({ summary: "Mark a month's fee as paid or unpaid" })
   setFee(@Param('id') id: string, @Body() dto: SetShopFeeDto) {
     return this.admin.setFee(id, dto);
   }
