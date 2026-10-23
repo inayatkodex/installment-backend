@@ -45,6 +45,11 @@ export { Prisma }
  */
 export type Shop = Prisma.ShopModel
 /**
+ * Model FeeRecord
+ * 
+ */
+export type FeeRecord = Prisma.FeeRecordModel
+/**
  * Model Admin
  * 
  */

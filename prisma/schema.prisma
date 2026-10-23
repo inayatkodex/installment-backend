@@ -15,6 +15,11 @@ enum ShopStatus {
   archived
 }
 
+enum FeeStatus {
+  paid
+  unpaid
+}
+
 model Shop {
   id           String     @id @default(uuid())
   shopNo       Int        @unique @default(autoincrement())
@@ -27,6 +32,8 @@ model Shop {
   address      String
   passwordHash String
   status       ShopStatus @default(pending)
+  statusNote   String?
+  monthlyFee   Int        @default(2500)
 
   profilePic      String? @db.Text
   docPhoto        String? @db.Text
@@ -34,10 +41,27 @@ model Shop {
   docCnicBack     String? @db.Text
   docShopDocument String? @db.Text
 
+  feeRecords FeeRecord[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("shops")
+}
+
+model FeeRecord {
+  id        String    @id @default(uuid())
+  shopId    String
+  shop      Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  month     String // "YYYY-MM"
+  status    FeeStatus @default(unpaid)
+  paidOn    DateTime?
+  method    String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([shopId, month])
+  @@map("fee_records")
 }
 
 model Admin {

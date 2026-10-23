@@ -17,3 +17,11 @@ export const ShopStatus = {
 } as const
 
 export type ShopStatus = (typeof ShopStatus)[keyof typeof ShopStatus]
+
+
+export const FeeStatus = {
+  paid: 'paid',
+  unpaid: 'unpaid'
+} as const
+
+export type FeeStatus = (typeof FeeStatus)[keyof typeof FeeStatus]
