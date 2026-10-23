@@ -1,0 +1,51 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ShopStatus {
+  pending
+  active
+  inactive
+  archived
+}
+
+model Shop {
+  id           String     @id @default(uuid())
+  shopNo       Int        @unique @default(autoincrement())
+  shopName     String
+  ownerName    String
+  mobile       String     @unique
+  email        String?
+  cnic         String
+  city         String
+  address      String
+  passwordHash String
+  status       ShopStatus @default(pending)
+
+  profilePic      String? @db.Text
+  docPhoto        String? @db.Text
+  docCnicFront    String? @db.Text
+  docCnicBack     String? @db.Text
+  docShopDocument String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("shops")
+}
+
+model Admin {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  @@map("admins")
+}
