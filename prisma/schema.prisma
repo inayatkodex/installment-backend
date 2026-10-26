@@ -34,6 +34,7 @@ model Shop {
   status       ShopStatus @default(pending)
   statusNote   String?
   monthlyFee   Int        @default(2500)
+  customerSeq  Int        @default(0)
 
   profilePic      String? @db.Text
   docPhoto        String? @db.Text
@@ -42,6 +43,7 @@ model Shop {
   docShopDocument String? @db.Text
 
   feeRecords FeeRecord[]
+  customers  Customer[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -72,4 +74,61 @@ model Admin {
   createdAt    DateTime @default(now())
 
   @@map("admins")
+}
+model Customer {
+  id           String    @id @default(uuid())
+  shopId       String
+  shop         Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  customerNo   Int
+  name         String
+  fatherName   String?
+  phone        String
+  cnic         String?
+  address      String?
+  photo        String?   @db.Text
+  docCnicFront String?   @db.Text
+  docCnicBack  String?   @db.Text
+  docOther     String?   @db.Text
+  downPayment  Int
+  months       Int
+  firstDueDate String // "YYYY-MM-DD"
+  deletedAt    DateTime?
+
+  items    CustomerItem[]
+  payments Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([shopId, customerNo])
+  @@index([shopId, deletedAt])
+  @@map("customers")
+}
+
+model CustomerItem {
+  id         String   @id @default(uuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  name       String
+  price      Int
+  photo      String?  @db.Text
+  boughtOn   String // "YYYY-MM-DD"
+  createdAt  DateTime @default(now())
+
+  @@map("customer_items")
+}
+
+model Payment {
+  id         String    @id @default(uuid())
+  customerId String
+  customer   Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  amount     Int
+  method     String    @default("Cash")
+  note       String?
+  paidOn     DateTime  @default(now())
+  reversedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([customerId])
+  @@map("payments")
 }

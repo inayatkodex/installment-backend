@@ -11,4 +11,7 @@
 export type * from './models/Shop.js'
 export type * from './models/FeeRecord.js'
 export type * from './models/Admin.js'
+export type * from './models/Customer.js'
+export type * from './models/CustomerItem.js'
+export type * from './models/Payment.js'
 export type * from './commonInputTypes.js'

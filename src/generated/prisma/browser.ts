@@ -32,3 +32,18 @@ export type FeeRecord = Prisma.FeeRecordModel
  * 
  */
 export type Admin = Prisma.AdminModel
+/**
+ * Model Customer
+ * 
+ */
+export type Customer = Prisma.CustomerModel
+/**
+ * Model CustomerItem
+ * 
+ */
+export type CustomerItem = Prisma.CustomerItemModel
+/**
+ * Model Payment
+ * 
+ */
+export type Payment = Prisma.PaymentModel
