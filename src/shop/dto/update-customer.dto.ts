@@ -27,4 +27,9 @@ export class UpdateCustomerDto {
   @IsOptional()
   @IsString()
   address?: string;
+
+  @ApiPropertyOptional({ example: 'data:image/jpeg;base64,...' })
+  @IsOptional()
+  @IsString()
+  photo?: string;
 }

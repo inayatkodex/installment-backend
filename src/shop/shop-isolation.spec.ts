@@ -9,6 +9,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { ShopGuard } from '../common/guards/shop.guard';
 import { AuditModule } from '../common/audit/audit.module';
+import { StorageModule } from '../common/storage/storage.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PrismaService } from '../prisma/prisma.service';
 import { ShopService } from './shop.service';
@@ -32,6 +33,7 @@ describe('Shop Data Isolation & Authorization Guards (PostgreSQL Integration)', 
         JwtModule.register({ secret: 'test-jwt-secret-key-12345678901234567890' }),
         PrismaModule,
         AuditModule,
+        StorageModule,
       ],
       providers: [ShopService, ShopGuard, AdminGuard],
     }).compile();

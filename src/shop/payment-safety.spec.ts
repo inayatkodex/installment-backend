@@ -2,6 +2,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuditModule } from '../common/audit/audit.module';
+import { StorageModule } from '../common/storage/storage.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PrismaService } from '../prisma/prisma.service';
 import { ShopService } from './shop.service';
@@ -21,6 +22,7 @@ describe('Payment Safety & Concurrency (PostgreSQL Integration)', () => {
         ConfigModule.forRoot({ isGlobal: true }),
         PrismaModule,
         AuditModule,
+        StorageModule,
       ],
       providers: [ShopService],
     }).compile();

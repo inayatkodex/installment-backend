@@ -12,11 +12,14 @@ import { ShopLoginDto } from './dto/shop-login.dto';
 import { ShopSignupDto } from './dto/shop-signup.dto';
 import { PrismaService } from '../prisma/prisma.service';
 
+import { StorageService } from '../common/storage/storage.service';
+
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    private readonly storage: StorageService,
   ) {}
 
   // "0300-1234567" aur "03001234567" ko ek jaisa banata hai
@@ -37,6 +40,15 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
+    const [profilePic, docPhoto, docCnicFront, docCnicBack, docShopDocument] =
+      await Promise.all([
+        this.storage.saveBase64(dto.profilePic, 'shops'),
+        this.storage.saveBase64(dto.documents?.photo, 'documents'),
+        this.storage.saveBase64(dto.documents?.cnicFront, 'documents'),
+        this.storage.saveBase64(dto.documents?.cnicBack, 'documents'),
+        this.storage.saveBase64(dto.documents?.shopDocument, 'documents'),
+      ]);
+
     try {
       await this.prisma.shop.create({
         data: {
@@ -48,11 +60,11 @@ export class AuthService {
           city: dto.city.trim(),
           address: dto.address.trim(),
           passwordHash,
-          profilePic: dto.profilePic,
-          docPhoto: dto.documents?.photo,
-          docCnicFront: dto.documents?.cnicFront,
-          docCnicBack: dto.documents?.cnicBack,
-          docShopDocument: dto.documents?.shopDocument,
+          profilePic,
+          docPhoto,
+          docCnicFront,
+          docCnicBack,
+          docShopDocument,
           // status default: pending (admin approve karega)
         },
       });

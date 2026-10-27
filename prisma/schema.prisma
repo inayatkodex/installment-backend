@@ -48,6 +48,8 @@ model Shop {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([status])
+  @@index([createdAt])
   @@map("shops")
 }
 
@@ -63,6 +65,7 @@ model FeeRecord {
   updatedAt DateTime  @updatedAt
 
   @@unique([shopId, month])
+  @@index([month, status])
   @@map("fee_records")
 }
 
@@ -102,6 +105,7 @@ model Customer {
 
   @@unique([shopId, customerNo])
   @@index([shopId, deletedAt])
+  @@index([shopId, phone])
   @@map("customers")
 }
 
@@ -115,6 +119,7 @@ model CustomerItem {
   boughtOn   String // "YYYY-MM-DD"
   createdAt  DateTime @default(now())
 
+  @@index([customerId])
   @@map("customer_items")
 }
 
@@ -132,6 +137,7 @@ model Payment {
 
   @@index([customerId])
   @@index([customerId, paidOn])
+  @@index([paidOn, reversedAt])
   @@map("payments")
 }
 

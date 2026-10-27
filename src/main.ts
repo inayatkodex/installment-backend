@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationError } from 'class-validator';
+import { resolve } from 'path';
 import { AppModule } from './app.module';
 import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
 
@@ -19,6 +20,12 @@ async function bootstrap() {
 
   // Trust reverse proxy (Nginx, Cloudflare, ALB) for accurate client IP in rate limiting
   app.set('trust proxy', 1);
+
+  // Serve uploaded images/documents statically with 7-day browser caching
+  app.useStaticAssets(resolve(process.cwd(), 'uploads'), {
+    prefix: '/uploads/',
+    maxAge: 86400000 * 7,
+  });
 
   app.setGlobalPrefix('api');
   app.useBodyParser('json', { limit: '15mb' });

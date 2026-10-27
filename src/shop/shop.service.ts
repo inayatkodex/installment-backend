@@ -11,6 +11,7 @@ import {
   monthLabel,
 } from '../admin/admin.utils';
 import { AuditService } from '../common/audit/audit.service';
+import { StorageService } from '../common/storage/storage.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { ListCustomersQueryDto } from './dto/list-customers-query.dto';
@@ -35,9 +36,45 @@ const FULL = {
   payments: { orderBy: [{ paidOn: 'asc' }, { createdAt: 'asc' }] },
 } satisfies Prisma.CustomerInclude;
 
+// Lean projection that excludes heavy base64/blob document fields
+const LEAN_SELECT = {
+  id: true,
+  customerNo: true,
+  name: true,
+  phone: true,
+  photo: true,
+  downPayment: true,
+  months: true,
+  firstDueDate: true,
+  items: {
+    select: {
+      id: true,
+      name: true,
+      price: true,
+    },
+  },
+  payments: {
+    select: {
+      id: true,
+      amount: true,
+      paidOn: true,
+      method: true,
+      note: true,
+      reversedAt: true,
+    },
+    orderBy: [{ paidOn: 'asc' }, { createdAt: 'asc' }],
+  },
+} satisfies Prisma.CustomerSelect;
+
 type CustomerFull = Prisma.CustomerGetPayload<{
   include: { items: true; payments: true };
 }>;
+
+type CustomerLean = Prisma.CustomerGetPayload<{
+  select: typeof LEAN_SELECT;
+}>;
+
+type CustomerRecord = CustomerLean | CustomerFull;
 type CustomerStatus = 'active' | 'overdue' | 'completed';
 
 const ok = <T>(data: T) => ({ status: 'success', data });
@@ -55,6 +92,7 @@ export class ShopService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly storage: StorageService,
   ) {}
 
   /* ================= 1. DASHBOARD ================= */
@@ -275,18 +313,12 @@ export class ShopService {
   /* ================= 6. CUSTOMERS LIST ================= */
   async listCustomers(shopId: string, q: ListCustomersQueryDto) {
     const today = todayIso();
-    const search = (q.search ?? '').trim().toLowerCase().replace(/-/g, '');
+    const searchRaw = (q.search ?? '').trim();
 
-    const items = (await this.loadAll(shopId))
+    const customers = await this.loadAll(shopId, searchRaw || undefined);
+    const items = customers
       .map((c) => this.toListItem(c, today))
-      .filter((c) => !q.status || q.status === 'all' || c.status === q.status)
-      .filter(
-        (c) =>
-          !search ||
-          c.name.toLowerCase().includes(search) ||
-          c.phone.replace(/-/g, '').includes(search) ||
-          c.code.toLowerCase().replace(/-/g, '').includes(search),
-      );
+      .filter((c) => !q.status || q.status === 'all' || c.status === q.status);
 
     return ok(items);
   }
@@ -311,6 +343,22 @@ export class ShopService {
 
     const today = todayIso();
 
+    const [photo, docCnicFront, docCnicBack, docOther] = await Promise.all([
+      this.storage.saveBase64(dto.photo, 'customers'),
+      this.storage.saveBase64(dto.documents?.cnicFront, 'documents'),
+      this.storage.saveBase64(dto.documents?.cnicBack, 'documents'),
+      this.storage.saveBase64(dto.documents?.other, 'documents'),
+    ]);
+
+    const items = await Promise.all(
+      dto.items.map(async (i) => ({
+        name: i.name.trim(),
+        price: i.price,
+        photo: await this.storage.saveBase64(i.photo, 'items'),
+        boughtOn: today,
+      })),
+    );
+
     const created = await this.prisma.$transaction(async (tx) => {
       // Har shop ka apna customer number (C-0001, C-0002, ...)
       const { customerSeq } = await tx.shop.update({
@@ -328,20 +376,15 @@ export class ShopService {
           phone: digits(dto.mobile),
           cnic: clean(dto.cnic),
           address: clean(dto.address),
-          photo: dto.photo || null,
-          docCnicFront: dto.documents?.cnicFront || null,
-          docCnicBack: dto.documents?.cnicBack || null,
-          docOther: dto.documents?.other || null,
+          photo,
+          docCnicFront,
+          docCnicBack,
+          docOther,
           downPayment: dto.downPayment,
           months: dto.months,
           firstDueDate: dto.firstDueDate,
           items: {
-            create: dto.items.map((i) => ({
-              name: i.name.trim(),
-              price: i.price,
-              photo: i.photo || null,
-              boughtOn: today,
-            })),
+            create: items,
           },
         },
         select: { id: true },
@@ -364,6 +407,9 @@ export class ShopService {
     if (dto.phone !== undefined) data.phone = digits(dto.phone);
     if (dto.cnic !== undefined) data.cnic = clean(dto.cnic);
     if (dto.address !== undefined) data.address = clean(dto.address);
+    if (dto.photo !== undefined) {
+      data.photo = await this.storage.saveBase64(dto.photo, 'customers');
+    }
 
     const result = await this.prisma.customer.updateMany({
       where: { id, shopId, deletedAt: null },
@@ -432,20 +478,45 @@ export class ShopService {
   /* ================= 11. DOCUMENT BADALNA ================= */
   async setDocument(shopId: string, id: string, docKey: string, photo: string) {
     const field = this.docField(docKey);
+
+    const existing = await this.prisma.customer.findFirst({
+      where: { id, shopId, deletedAt: null },
+      select: { [field]: true } as any,
+    });
+    if (!existing) throw new NotFoundException('Customer nahi mila');
+
+    const photoUrl = await this.storage.saveBase64(photo, 'documents');
+    const oldFile = (existing as any)[field];
+    if (oldFile && oldFile !== photoUrl) {
+      await this.storage.deleteFile(oldFile);
+    }
+
     const data: Prisma.CustomerUpdateManyMutationInput = {};
-    data[field] = photo;
+    data[field] = photoUrl;
 
     const result = await this.prisma.customer.updateMany({
       where: { id, shopId, deletedAt: null },
       data,
     });
     if (!result.count) throw new NotFoundException('Customer nahi mila');
-    return ok({ ok: true });
+    return ok({ ok: true, url: photoUrl });
   }
 
   /* ================= 12. DOCUMENT HATANA ================= */
   async removeDocument(shopId: string, id: string, docKey: string) {
     const field = this.docField(docKey);
+
+    const existing = await this.prisma.customer.findFirst({
+      where: { id, shopId, deletedAt: null },
+      select: { [field]: true } as any,
+    });
+    if (!existing) throw new NotFoundException('Customer nahi mila');
+
+    const oldFile = (existing as any)[field];
+    if (oldFile) {
+      await this.storage.deleteFile(oldFile);
+    }
+
     const data: Prisma.CustomerUpdateManyMutationInput = {};
     data[field] = null;
 
@@ -470,10 +541,29 @@ export class ShopService {
   }
 
   /* ================= helpers ================= */
-  private loadAll(shopId: string): Promise<CustomerFull[]> {
+  private loadAll(shopId: string, search?: string): Promise<CustomerLean[]> {
+    const where: Prisma.CustomerWhereInput = { shopId, deletedAt: null };
+
+    if (search) {
+      const q = search.trim();
+      const phoneDigits = digits(q);
+      const codeMatch = /^c-?(\d{1,9})$/i.exec(q);
+
+      const or: Prisma.CustomerWhereInput[] = [
+        { name: { contains: q, mode: 'insensitive' } },
+      ];
+      if (phoneDigits) {
+        or.push({ phone: { contains: phoneDigits } });
+      }
+      if (codeMatch) {
+        or.push({ customerNo: Number(codeMatch[1]) });
+      }
+      where.OR = or;
+    }
+
     return this.prisma.customer.findMany({
-      where: { shopId, deletedAt: null },
-      include: FULL,
+      where,
+      select: LEAN_SELECT,
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -493,7 +583,7 @@ export class ShopService {
     return field;
   }
 
-  private plan(c: CustomerFull): PlanInput {
+  private plan(c: CustomerRecord): PlanInput {
     return {
       items: c.items,
       downPayment: c.downPayment,
@@ -503,7 +593,7 @@ export class ShopService {
     };
   }
 
-  private toListItem(c: CustomerFull, today: string) {
+  private toListItem(c: CustomerRecord, today: string) {
     const plan = this.plan(c);
     const rows = buildSchedule(plan, today);
     const total = totalOf(plan);
@@ -577,7 +667,7 @@ export class ShopService {
     };
   }
 
-  private collectionOf(customers: CustomerFull[], today: string) {
+  private collectionOf(customers: CustomerRecord[], today: string) {
     const out: {
       id: string;
       customerId: string;
@@ -611,7 +701,7 @@ export class ShopService {
     return out;
   }
 
-  private lateOf(customers: CustomerFull[], today: string) {
+  private lateOf(customers: CustomerRecord[], today: string) {
     const out: {
       customerId: string;
       name: string;
@@ -654,7 +744,7 @@ export class ShopService {
     return out.sort((a, b) => b.daysLate - a.daysLate);
   }
 
-  private reportOf(customers: CustomerFull[], month: string, today: string) {
+  private reportOf(customers: CustomerRecord[], month: string, today: string) {
     const rows = customers
       .flatMap((c) => buildSchedule(this.plan(c), today))
       .filter((r) => r.dueDate.startsWith(month));
