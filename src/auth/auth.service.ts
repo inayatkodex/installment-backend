@@ -70,13 +70,18 @@ export class AuthService {
     };
   }
 
+  // Dummy hash used for constant-time comparison when an account is not found
+  private readonly DUMMY_HASH =
+    '$2b$10$abcdefghijklmnopqrstuuABCDEFGHIJKLMNOPQRSTUVWXYZ0123456';
+
   /* ---------------- SHOP LOGIN ---------------- */
   async shopLogin(dto: ShopLoginDto) {
     const shop = await this.prisma.shop.findUnique({
       where: { mobile: this.digits(dto.mobile) },
     });
 
-    const passwordOk = shop ? await bcrypt.compare(dto.password, shop.passwordHash) : false;
+    const hashToCompare = shop?.passwordHash || this.DUMMY_HASH;
+    const passwordOk = await bcrypt.compare(dto.password, hashToCompare);
     if (!shop || !passwordOk) {
       throw new UnauthorizedException('Mobile number ya password sahi nahi hai');
     }
@@ -113,7 +118,8 @@ export class AuthService {
       where: { email: dto.email.trim().toLowerCase() },
     });
 
-    const passwordOk = admin ? await bcrypt.compare(dto.password, admin.passwordHash) : false;
+    const hashToCompare = admin?.passwordHash || this.DUMMY_HASH;
+    const passwordOk = await bcrypt.compare(dto.password, hashToCompare);
     if (!admin || !passwordOk) {
       throw new UnauthorizedException('Invalid email or password');
     }

@@ -10,6 +10,7 @@ import {
   formatMobile,
   monthLabel,
 } from '../admin/admin.utils';
+import { AuditService } from '../common/audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { ListCustomersQueryDto } from './dto/list-customers-query.dto';
@@ -51,7 +52,10 @@ const DOC_FIELDS = {
 
 @Injectable()
 export class ShopService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
   /* ================= 1. DASHBOARD ================= */
   async dashboard(shopId: string) {
@@ -106,43 +110,166 @@ export class ShopService {
   }
 
   /* ================= 4. PAYMENT LENA ================= */
-  async receivePayment(shopId: string, dto: ReceivePaymentDto) {
-    const c = await this.findFull(shopId, dto.customerId);
-    const plan = this.plan(c);
+  async receivePayment(
+    shopId: string,
+    dto: ReceivePaymentDto,
+    meta?: { ip?: string; userAgent?: string },
+  ) {
+    const trimmedKey = dto.idempotencyKey?.trim() || null;
 
-    const left = totalOf(plan) - paidTotalOf(plan);
-    if (dto.amount > left)
-      throw new BadRequestException('Raqam baaki hisaab se zyada hai');
+    // Fast-path idempotency check before transaction:
+    // If a payment already exists with this idempotencyKey for this customer & shop, return successful duplicate
+    if (trimmedKey) {
+      const existing = await this.prisma.payment.findFirst({
+        where: {
+          idempotencyKey: trimmedKey,
+          customer: { shopId },
+        },
+      });
+      if (existing) {
+        return ok({ ok: true });
+      }
+    }
 
-    await this.prisma.payment.create({
-      data: {
-        customerId: c.id,
-        amount: dto.amount,
-        method: 'Cash',
-        note: dto.note?.trim() || null,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      // Re-check idempotency inside tx to handle parallel racing requests with the same key
+      if (trimmedKey) {
+        const existingTx = await tx.payment.findFirst({
+          where: {
+            idempotencyKey: trimmedKey,
+            customer: { shopId },
+          },
+        });
+        if (existingTx) {
+          return ok({ ok: true });
+        }
+      }
+
+      // Row-level lock on the customer in PostgreSQL to serialize concurrent payments
+      const lockedRows = await tx.$queryRaw<{ id: string }[]>`
+        SELECT id FROM "customers"
+        WHERE id = ${dto.customerId} AND "shopId" = ${shopId} AND "deletedAt" IS NULL
+        FOR UPDATE
+      `;
+
+      if (!lockedRows || lockedRows.length === 0) {
+        throw new NotFoundException('Customer nahi mila');
+      }
+
+      // Re-fetch customer state within the locked transaction
+      const c = await tx.customer.findFirst({
+        where: { id: dto.customerId, shopId, deletedAt: null },
+        include: FULL,
+      });
+
+      if (!c) throw new NotFoundException('Customer nahi mila');
+
+      // Double-click protection for legacy clients without an idempotency key:
+      // If the exact same customer, amount, and note was created within the last 3 seconds, suppress duplicate
+      if (!trimmedKey) {
+        const threeSecondsAgo = new Date(Date.now() - 3000);
+        const recentDuplicate = c.payments.find(
+          (p) =>
+            !p.reversedAt &&
+            p.amount === dto.amount &&
+            p.createdAt >= threeSecondsAgo &&
+            (p.note ?? null) === (dto.note?.trim() ?? null),
+        );
+        if (recentDuplicate) {
+          return ok({ ok: true });
+        }
+      }
+
+      // Recalculate remaining balance inside the locked transaction
+      const plan = this.plan(c);
+      const left = totalOf(plan) - paidTotalOf(plan);
+      if (dto.amount > left) {
+        throw new BadRequestException('Raqam baaki hisaab se zyada hai');
+      }
+
+      const payment = await tx.payment.create({
+        data: {
+          customerId: c.id,
+          amount: dto.amount,
+          method: 'Cash',
+          note: dto.note?.trim() || null,
+          idempotencyKey: trimmedKey,
+        },
+      });
+
+      // Write audit log inside the same transaction
+      await this.audit.recordWithTx(tx, {
+        actorType: 'shop',
+        actorId: shopId,
+        action: 'PAYMENT_RECEIVED',
+        entityType: 'Payment',
+        entityId: payment.id,
+        details: {
+          customerId: c.id,
+          customerName: c.name,
+          amount: dto.amount,
+          remainingAfter: left - dto.amount,
+          idempotencyKey: trimmedKey,
+        },
+        ipAddress: meta?.ip,
+        userAgent: meta?.userAgent,
+      });
+
+      return ok({ ok: true });
     });
-    return ok({ ok: true });
   }
 
   /* ================= 5. PAYMENT WAPAS ================= */
-  async reversePayment(shopId: string, id: string) {
-    const p = await this.prisma.payment.findFirst({
-      where: { id, customer: { shopId, deletedAt: null } },
-    });
-    if (!p) throw new NotFoundException('Payment nahi mili');
+  async reversePayment(
+    shopId: string,
+    id: string,
+    meta?: { ip?: string; userAgent?: string },
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const p = await tx.payment.findFirst({
+        where: { id, customer: { shopId, deletedAt: null } },
+        include: { customer: { select: { id: true, name: true, shopId: true } } },
+      });
+      if (!p) throw new NotFoundException('Payment nahi mili');
 
-    if (dateOnly(p.paidOn) !== todayIso()) {
-      throw new BadRequestException('Sirf aaj ki payment wapas ho sakti hai');
-    }
+      // Row-level lock on the customer in PostgreSQL to serialize with other payments/reversals
+      await tx.$queryRaw`
+        SELECT id FROM "customers"
+        WHERE id = ${p.customerId} AND "shopId" = ${shopId}
+        FOR UPDATE
+      `;
 
-    if (!p.reversedAt) {
-      await this.prisma.payment.update({
-        where: { id },
+      if (dateOnly(p.paidOn) !== todayIso()) {
+        throw new BadRequestException('Sirf aaj ki payment wapas ho sakti hai');
+      }
+
+      if (p.reversedAt) {
+        throw new BadRequestException('Payment pehle hi wapas ho chuki hai');
+      }
+
+      await tx.payment.update({
+        where: { id: p.id },
         data: { reversedAt: new Date() },
       });
-    }
-    return ok({ ok: true });
+
+      await this.audit.recordWithTx(tx, {
+        actorType: 'shop',
+        actorId: shopId,
+        action: 'PAYMENT_REVERSED',
+        entityType: 'Payment',
+        entityId: p.id,
+        details: {
+          customerId: p.customerId,
+          customerName: p.customer.name,
+          amount: p.amount,
+          originalPaidOn: p.paidOn,
+        },
+        ipAddress: meta?.ip,
+        userAgent: meta?.userAgent,
+      });
+
+      return ok({ ok: true });
+    });
   }
 
   /* ================= 6. CUSTOMERS LIST ================= */
@@ -248,21 +375,58 @@ export class ShopService {
   }
 
   /* ================= 10. CUSTOMER DELETE ================= */
-  async deleteCustomer(shopId: string, id: string) {
-    const c = await this.findFull(shopId, id);
+  async deleteCustomer(
+    shopId: string,
+    id: string,
+    meta?: { ip?: string; userAgent?: string },
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      // Row-level lock on the customer in PostgreSQL
+      const locked = await tx.$queryRaw<{ id: string }[]>`
+        SELECT id FROM "customers"
+        WHERE id = ${id} AND "shopId" = ${shopId} AND "deletedAt" IS NULL
+        FOR UPDATE
+      `;
+      if (!locked || locked.length === 0) {
+        throw new NotFoundException('Customer nahi mila');
+      }
 
-    if (this.toListItem(c, todayIso()).status !== 'completed') {
-      throw new BadRequestException(
-        'Sirf wahi customer delete ho sakta hai jis ki saari qistein poori ho chuki hon',
-      );
-    }
+      const c = await tx.customer.findFirst({
+        where: { id, shopId, deletedAt: null },
+        include: FULL,
+      });
+      if (!c) throw new NotFoundException('Customer nahi mila');
 
-    // Soft delete: hisaab ka record rehta hai
-    await this.prisma.customer.update({
-      where: { id },
-      data: { deletedAt: new Date() },
+      if (this.toListItem(c, todayIso()).status !== 'completed') {
+        throw new BadRequestException(
+          'Sirf wahi customer delete ho sakta hai jis ki saari qistein poori ho chuki hon',
+        );
+      }
+
+      // Soft delete: scoped strictly to shopId
+      await tx.customer.updateMany({
+        where: { id, shopId, deletedAt: null },
+        data: { deletedAt: new Date() },
+      });
+
+      // Write audit log inside the transaction
+      await this.audit.recordWithTx(tx, {
+        actorType: 'shop',
+        actorId: shopId,
+        action: 'CUSTOMER_DELETED',
+        entityType: 'Customer',
+        entityId: c.id,
+        details: {
+          customerName: c.name,
+          customerNo: c.customerNo,
+          total: totalOf(this.plan(c)),
+        },
+        ipAddress: meta?.ip,
+        userAgent: meta?.userAgent,
+      });
+
+      return ok({ ok: true });
     });
-    return ok({ ok: true });
   }
 
   /* ================= 11. DOCUMENT BADALNA ================= */

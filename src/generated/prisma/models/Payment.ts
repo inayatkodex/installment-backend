@@ -40,6 +40,7 @@ export type PaymentMinAggregateOutputType = {
   amount: number | null
   method: string | null
   note: string | null
+  idempotencyKey: string | null
   paidOn: Date | null
   reversedAt: Date | null
   createdAt: Date | null
@@ -51,6 +52,7 @@ export type PaymentMaxAggregateOutputType = {
   amount: number | null
   method: string | null
   note: string | null
+  idempotencyKey: string | null
   paidOn: Date | null
   reversedAt: Date | null
   createdAt: Date | null
@@ -62,6 +64,7 @@ export type PaymentCountAggregateOutputType = {
   amount: number
   method: number
   note: number
+  idempotencyKey: number
   paidOn: number
   reversedAt: number
   createdAt: number
@@ -83,6 +86,7 @@ export type PaymentMinAggregateInputType = {
   amount?: true
   method?: true
   note?: true
+  idempotencyKey?: true
   paidOn?: true
   reversedAt?: true
   createdAt?: true
@@ -94,6 +98,7 @@ export type PaymentMaxAggregateInputType = {
   amount?: true
   method?: true
   note?: true
+  idempotencyKey?: true
   paidOn?: true
   reversedAt?: true
   createdAt?: true
@@ -105,6 +110,7 @@ export type PaymentCountAggregateInputType = {
   amount?: true
   method?: true
   note?: true
+  idempotencyKey?: true
   paidOn?: true
   reversedAt?: true
   createdAt?: true
@@ -203,6 +209,7 @@ export type PaymentGroupByOutputType = {
   amount: number
   method: string
   note: string | null
+  idempotencyKey: string | null
   paidOn: Date
   reversedAt: Date | null
   createdAt: Date
@@ -237,6 +244,7 @@ export type PaymentWhereInput = {
   amount?: Prisma.IntFilter<"Payment"> | number
   method?: Prisma.StringFilter<"Payment"> | string
   note?: Prisma.StringNullableFilter<"Payment"> | string | null
+  idempotencyKey?: Prisma.StringNullableFilter<"Payment"> | string | null
   paidOn?: Prisma.DateTimeFilter<"Payment"> | Date | string
   reversedAt?: Prisma.DateTimeNullableFilter<"Payment"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Payment"> | Date | string
@@ -249,6 +257,7 @@ export type PaymentOrderByWithRelationInput = {
   amount?: Prisma.SortOrder
   method?: Prisma.SortOrder
   note?: Prisma.SortOrderInput | Prisma.SortOrder
+  idempotencyKey?: Prisma.SortOrderInput | Prisma.SortOrder
   paidOn?: Prisma.SortOrder
   reversedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -257,6 +266,7 @@ export type PaymentOrderByWithRelationInput = {
 
 export type PaymentWhereUniqueInput = Prisma.AtLeast<{
   id?: string
+  idempotencyKey?: string
   AND?: Prisma.PaymentWhereInput | Prisma.PaymentWhereInput[]
   OR?: Prisma.PaymentWhereInput[]
   NOT?: Prisma.PaymentWhereInput | Prisma.PaymentWhereInput[]
@@ -268,7 +278,7 @@ export type PaymentWhereUniqueInput = Prisma.AtLeast<{
   reversedAt?: Prisma.DateTimeNullableFilter<"Payment"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Payment"> | Date | string
   customer?: Prisma.XOR<Prisma.CustomerScalarRelationFilter, Prisma.CustomerWhereInput>
-}, "id">
+}, "id" | "idempotencyKey">
 
 export type PaymentOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -276,6 +286,7 @@ export type PaymentOrderByWithAggregationInput = {
   amount?: Prisma.SortOrder
   method?: Prisma.SortOrder
   note?: Prisma.SortOrderInput | Prisma.SortOrder
+  idempotencyKey?: Prisma.SortOrderInput | Prisma.SortOrder
   paidOn?: Prisma.SortOrder
   reversedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -295,6 +306,7 @@ export type PaymentScalarWhereWithAggregatesInput = {
   amount?: Prisma.IntWithAggregatesFilter<"Payment"> | number
   method?: Prisma.StringWithAggregatesFilter<"Payment"> | string
   note?: Prisma.StringNullableWithAggregatesFilter<"Payment"> | string | null
+  idempotencyKey?: Prisma.StringNullableWithAggregatesFilter<"Payment"> | string | null
   paidOn?: Prisma.DateTimeWithAggregatesFilter<"Payment"> | Date | string
   reversedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Payment"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Payment"> | Date | string
@@ -305,6 +317,7 @@ export type PaymentCreateInput = {
   amount: number
   method?: string
   note?: string | null
+  idempotencyKey?: string | null
   paidOn?: Date | string
   reversedAt?: Date | string | null
   createdAt?: Date | string
@@ -317,6 +330,7 @@ export type PaymentUncheckedCreateInput = {
   amount: number
   method?: string
   note?: string | null
+  idempotencyKey?: string | null
   paidOn?: Date | string
   reversedAt?: Date | string | null
   createdAt?: Date | string
@@ -327,6 +341,7 @@ export type PaymentUpdateInput = {
   amount?: Prisma.IntFieldUpdateOperationsInput | number
   method?: Prisma.StringFieldUpdateOperationsInput | string
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idempotencyKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidOn?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reversedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -339,6 +354,7 @@ export type PaymentUncheckedUpdateInput = {
   amount?: Prisma.IntFieldUpdateOperationsInput | number
   method?: Prisma.StringFieldUpdateOperationsInput | string
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idempotencyKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidOn?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reversedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -350,6 +366,7 @@ export type PaymentCreateManyInput = {
   amount: number
   method?: string
   note?: string | null
+  idempotencyKey?: string | null
   paidOn?: Date | string
   reversedAt?: Date | string | null
   createdAt?: Date | string
@@ -360,6 +377,7 @@ export type PaymentUpdateManyMutationInput = {
   amount?: Prisma.IntFieldUpdateOperationsInput | number
   method?: Prisma.StringFieldUpdateOperationsInput | string
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idempotencyKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidOn?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reversedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -371,6 +389,7 @@ export type PaymentUncheckedUpdateManyInput = {
   amount?: Prisma.IntFieldUpdateOperationsInput | number
   method?: Prisma.StringFieldUpdateOperationsInput | string
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idempotencyKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidOn?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reversedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -392,6 +411,7 @@ export type PaymentCountOrderByAggregateInput = {
   amount?: Prisma.SortOrder
   method?: Prisma.SortOrder
   note?: Prisma.SortOrder
+  idempotencyKey?: Prisma.SortOrder
   paidOn?: Prisma.SortOrder
   reversedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -407,6 +427,7 @@ export type PaymentMaxOrderByAggregateInput = {
   amount?: Prisma.SortOrder
   method?: Prisma.SortOrder
   note?: Prisma.SortOrder
+  idempotencyKey?: Prisma.SortOrder
   paidOn?: Prisma.SortOrder
   reversedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -418,6 +439,7 @@ export type PaymentMinOrderByAggregateInput = {
   amount?: Prisma.SortOrder
   method?: Prisma.SortOrder
   note?: Prisma.SortOrder
+  idempotencyKey?: Prisma.SortOrder
   paidOn?: Prisma.SortOrder
   reversedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -474,6 +496,7 @@ export type PaymentCreateWithoutCustomerInput = {
   amount: number
   method?: string
   note?: string | null
+  idempotencyKey?: string | null
   paidOn?: Date | string
   reversedAt?: Date | string | null
   createdAt?: Date | string
@@ -484,6 +507,7 @@ export type PaymentUncheckedCreateWithoutCustomerInput = {
   amount: number
   method?: string
   note?: string | null
+  idempotencyKey?: string | null
   paidOn?: Date | string
   reversedAt?: Date | string | null
   createdAt?: Date | string
@@ -524,6 +548,7 @@ export type PaymentScalarWhereInput = {
   amount?: Prisma.IntFilter<"Payment"> | number
   method?: Prisma.StringFilter<"Payment"> | string
   note?: Prisma.StringNullableFilter<"Payment"> | string | null
+  idempotencyKey?: Prisma.StringNullableFilter<"Payment"> | string | null
   paidOn?: Prisma.DateTimeFilter<"Payment"> | Date | string
   reversedAt?: Prisma.DateTimeNullableFilter<"Payment"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Payment"> | Date | string
@@ -534,6 +559,7 @@ export type PaymentCreateManyCustomerInput = {
   amount: number
   method?: string
   note?: string | null
+  idempotencyKey?: string | null
   paidOn?: Date | string
   reversedAt?: Date | string | null
   createdAt?: Date | string
@@ -544,6 +570,7 @@ export type PaymentUpdateWithoutCustomerInput = {
   amount?: Prisma.IntFieldUpdateOperationsInput | number
   method?: Prisma.StringFieldUpdateOperationsInput | string
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idempotencyKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidOn?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reversedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -554,6 +581,7 @@ export type PaymentUncheckedUpdateWithoutCustomerInput = {
   amount?: Prisma.IntFieldUpdateOperationsInput | number
   method?: Prisma.StringFieldUpdateOperationsInput | string
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idempotencyKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidOn?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reversedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -564,6 +592,7 @@ export type PaymentUncheckedUpdateManyWithoutCustomerInput = {
   amount?: Prisma.IntFieldUpdateOperationsInput | number
   method?: Prisma.StringFieldUpdateOperationsInput | string
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idempotencyKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidOn?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reversedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -577,6 +606,7 @@ export type PaymentSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   amount?: boolean
   method?: boolean
   note?: boolean
+  idempotencyKey?: boolean
   paidOn?: boolean
   reversedAt?: boolean
   createdAt?: boolean
@@ -589,6 +619,7 @@ export type PaymentSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   amount?: boolean
   method?: boolean
   note?: boolean
+  idempotencyKey?: boolean
   paidOn?: boolean
   reversedAt?: boolean
   createdAt?: boolean
@@ -601,6 +632,7 @@ export type PaymentSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   amount?: boolean
   method?: boolean
   note?: boolean
+  idempotencyKey?: boolean
   paidOn?: boolean
   reversedAt?: boolean
   createdAt?: boolean
@@ -613,12 +645,13 @@ export type PaymentSelectScalar = {
   amount?: boolean
   method?: boolean
   note?: boolean
+  idempotencyKey?: boolean
   paidOn?: boolean
   reversedAt?: boolean
   createdAt?: boolean
 }
 
-export type PaymentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "customerId" | "amount" | "method" | "note" | "paidOn" | "reversedAt" | "createdAt", ExtArgs["result"]["payment"]>
+export type PaymentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "customerId" | "amount" | "method" | "note" | "idempotencyKey" | "paidOn" | "reversedAt" | "createdAt", ExtArgs["result"]["payment"]>
 export type PaymentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   customer?: boolean | Prisma.CustomerDefaultArgs<ExtArgs>
 }
@@ -640,6 +673,7 @@ export type $PaymentPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     amount: number
     method: string
     note: string | null
+    idempotencyKey: string | null
     paidOn: Date
     reversedAt: Date | null
     createdAt: Date
@@ -1072,6 +1106,7 @@ export interface PaymentFieldRefs {
   readonly amount: Prisma.FieldRef<"Payment", 'Int'>
   readonly method: Prisma.FieldRef<"Payment", 'String'>
   readonly note: Prisma.FieldRef<"Payment", 'String'>
+  readonly idempotencyKey: Prisma.FieldRef<"Payment", 'String'>
   readonly paidOn: Prisma.FieldRef<"Payment", 'DateTime'>
   readonly reversedAt: Prisma.FieldRef<"Payment", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Payment", 'DateTime'>

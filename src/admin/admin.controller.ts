@@ -5,9 +5,12 @@ import {
   Param,
   Patch,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import type { Request } from 'express';
+import { AdminId } from '../common/decorators/admin-id.decorator';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { AdminService } from './admin.service';
 import { ListShopsQueryDto } from './dto/list-shops-query.dto';
@@ -43,13 +46,29 @@ export class AdminController {
   @ApiOperation({
     summary: 'Change shop status (any status to any status)',
   })
-  setStatus(@Param('id') id: string, @Body() dto: UpdateShopStatusDto) {
-    return this.admin.setStatus(id, dto);
+  setStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdateShopStatusDto,
+    @AdminId() adminId: string,
+    @Req() req: Request,
+  ) {
+    return this.admin.setStatus(id, dto, adminId, {
+      ip: req?.ip,
+      userAgent: req?.headers['user-agent'],
+    });
   }
 
   @Patch('shops/:id/fee')
   @ApiOperation({ summary: "Mark a month's fee as paid or unpaid" })
-  setFee(@Param('id') id: string, @Body() dto: SetShopFeeDto) {
-    return this.admin.setFee(id, dto);
+  setFee(
+    @Param('id') id: string,
+    @Body() dto: SetShopFeeDto,
+    @AdminId() adminId: string,
+    @Req() req: Request,
+  ) {
+    return this.admin.setFee(id, dto, adminId, {
+      ip: req?.ip,
+      userAgent: req?.headers['user-agent'],
+    });
   }
 }

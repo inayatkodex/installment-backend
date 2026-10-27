@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '../generated/prisma/client';
+import { AuditService } from '../common/audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   currentMonth,
@@ -23,7 +24,10 @@ export interface FeeMonth {
 
 @Injectable()
 export class AdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
   /* ---------------- 1. DASHBOARD ---------------- */
   async dashboard() {
@@ -144,10 +148,15 @@ export class AdminService {
   }
 
   /* ---------------- 4. SHOP STATUS ---------------- */
-  async setStatus(id: string, dto: UpdateShopStatusDto) {
+  async setStatus(
+    id: string,
+    dto: UpdateShopStatusDto,
+    adminId?: string,
+    meta?: { ip?: string; userAgent?: string },
+  ) {
     const exists = await this.prisma.shop.findUnique({
       where: { id },
-      select: { id: true },
+      select: { id: true, shopName: true, status: true },
     });
     if (!exists) throw new NotFoundException('Shop not found');
 
@@ -173,13 +182,34 @@ export class AdminService {
           create: { shopId: id, month: cur, status: 'unpaid' },
         });
       }
+
+      await this.audit.recordWithTx(tx, {
+        actorType: 'admin',
+        actorId: adminId || 'admin',
+        action: 'SHOP_STATUS_CHANGED',
+        entityType: 'Shop',
+        entityId: id,
+        details: {
+          shopName: exists.shopName,
+          oldStatus: exists.status,
+          newStatus: dto.status,
+          reason: reason || null,
+        },
+        ipAddress: meta?.ip,
+        userAgent: meta?.userAgent,
+      });
     });
 
     return { status: 'success', data: await this.loadDetail(id) };
   }
 
   /* ---------------- 5. SHOP FEE ---------------- */
-  async setFee(id: string, dto: SetShopFeeDto) {
+  async setFee(
+    id: string,
+    dto: SetShopFeeDto,
+    adminId?: string,
+    meta?: { ip?: string; userAgent?: string },
+  ) {
     const shop = await this.prisma.shop.findUnique({
       where: { id },
       select: { status: true },
@@ -189,23 +219,40 @@ export class AdminService {
     const where = { shopId_month: { shopId: id, month: dto.month } };
     const existing = await this.prisma.feeRecord.findUnique({ where });
 
-    // Older months are not created when no record exists. This month's record is created only for active/inactive shops.
-    const canCreate =
-      dto.month === currentMonth() &&
-      (shop.status === 'active' || shop.status === 'inactive');
+    // Fee records can be created for active or inactive shops
+    const canCreate = shop.status === 'active' || shop.status === 'inactive';
     if (!existing && !canCreate) {
-      throw new NotFoundException('Fee record not found for this month');
+      throw new NotFoundException('Fee record cannot be created for this shop');
     }
 
+    const method = dto.method?.trim() || 'Cash';
     const data =
       dto.status === 'paid'
-        ? { status: 'paid' as const, paidOn: new Date(), method: 'Cash' }
+        ? { status: 'paid' as const, paidOn: new Date(), method }
         : { status: 'unpaid' as const, paidOn: null, method: null };
 
-    await this.prisma.feeRecord.upsert({
-      where,
-      update: data,
-      create: { shopId: id, month: dto.month, ...data },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.feeRecord.upsert({
+        where,
+        update: data,
+        create: { shopId: id, month: dto.month, ...data },
+      });
+
+      await this.audit.recordWithTx(tx, {
+        actorType: 'admin',
+        actorId: adminId || 'admin',
+        action: 'SHOP_FEE_UPDATED',
+        entityType: 'FeeRecord',
+        entityId: `${id}-${dto.month}`,
+        details: {
+          shopId: id,
+          month: dto.month,
+          previousStatus: existing?.status ?? 'unpaid',
+          newStatus: dto.status,
+        },
+        ipAddress: meta?.ip,
+        userAgent: meta?.userAgent,
+      });
     });
 
     return { status: 'success', data: await this.loadDetail(id) };

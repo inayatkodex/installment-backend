@@ -3,15 +3,18 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   HttpCode,
   HttpStatus,
   Param,
   Post,
   Put,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import type { Request } from 'express';
 import { ShopId } from '../common/decorators/shop-id.decorator';
 import { ShopGuard } from '../common/guards/shop.guard';
 import { CreateCustomerDto } from './dto/create-customer.dto';
@@ -52,15 +55,36 @@ export class ShopController {
   @Post('payments/receive')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Customer se payment lena' })
-  receive(@ShopId() shopId: string, @Body() dto: ReceivePaymentDto) {
-    return this.shop.receivePayment(shopId, dto);
+  receive(
+    @ShopId() shopId: string,
+    @Body() dto: ReceivePaymentDto,
+    @Headers('idempotency-key') idempotencyHeader?: string,
+    @Headers('x-idempotency-key') xIdempotencyHeader?: string,
+    @Req() req?: Request,
+  ) {
+    const key = dto.idempotencyKey || idempotencyHeader || xIdempotencyHeader;
+    return this.shop.receivePayment(
+      shopId,
+      { ...dto, idempotencyKey: key },
+      {
+        ip: req?.ip,
+        userAgent: req?.headers['user-agent'],
+      },
+    );
   }
 
   @Post('payments/:id/reverse')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Aaj ki payment wapas karna' })
-  reverse(@ShopId() shopId: string, @Param('id') id: string) {
-    return this.shop.reversePayment(shopId, id);
+  reverse(
+    @ShopId() shopId: string,
+    @Param('id') id: string,
+    @Req() req?: Request,
+  ) {
+    return this.shop.reversePayment(shopId, id, {
+      ip: req?.ip,
+      userAgent: req?.headers['user-agent'],
+    });
   }
 
   @Get('customers')
@@ -95,8 +119,15 @@ export class ShopController {
   @ApiOperation({
     summary: 'Customer delete karna (sirf jis ki qistein poori hon)',
   })
-  remove(@ShopId() shopId: string, @Param('id') id: string) {
-    return this.shop.deleteCustomer(shopId, id);
+  remove(
+    @ShopId() shopId: string,
+    @Param('id') id: string,
+    @Req() req?: Request,
+  ) {
+    return this.shop.deleteCustomer(shopId, id, {
+      ip: req?.ip,
+      userAgent: req?.headers['user-agent'],
+    });
   }
 
   @Put('customers/:id/documents/:docKey')

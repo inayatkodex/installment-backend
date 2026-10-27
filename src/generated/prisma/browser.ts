@@ -47,3 +47,8 @@ export type CustomerItem = Prisma.CustomerItemModel
  * 
  */
 export type Payment = Prisma.PaymentModel
+/**
+ * Model AuditLog
+ * 
+ */
+export type AuditLog = Prisma.AuditLogModel

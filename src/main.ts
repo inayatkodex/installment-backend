@@ -4,6 +4,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationError } from 'class-validator';
 import { AppModule } from './app.module';
+import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
 
 function firstMessage(errors: ValidationError[]): string {
   for (const e of errors) {
@@ -16,9 +17,18 @@ function firstMessage(errors: ValidationError[]): string {
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+  // Trust reverse proxy (Nginx, Cloudflare, ALB) for accurate client IP in rate limiting
+  app.set('trust proxy', 1);
+
   app.setGlobalPrefix('api');
   app.useBodyParser('json', { limit: '15mb' });
-  app.enableCors({ origin: ['http://localhost:3000'], credentials: true });
+
+  const corsOrigins = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
+    : ['http://localhost:3000'];
+  app.enableCors({ origin: corsOrigins, credentials: true });
+
+  app.useGlobalFilters(new PrismaExceptionFilter());
 
   app.useGlobalPipes(
     new ValidationPipe({

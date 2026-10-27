@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsIn, Matches } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsIn, IsOptional, IsString, Matches } from 'class-validator';
 
 export class SetShopFeeDto {
   @ApiProperty({ example: '2026-10', description: 'YYYY-MM' })
@@ -9,4 +9,9 @@ export class SetShopFeeDto {
   @ApiProperty({ enum: ['paid', 'unpaid'], example: 'paid' })
   @IsIn(['paid', 'unpaid'], { message: 'Fee status must be paid or unpaid' })
   status: 'paid' | 'unpaid';
+
+  @ApiPropertyOptional({ example: 'Cash', description: 'Payment method' })
+  @IsOptional()
+  @IsString()
+  method?: string;
 }
