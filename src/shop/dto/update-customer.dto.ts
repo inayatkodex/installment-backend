@@ -1,5 +1,13 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString, Matches } from 'class-validator';
+import {
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  Max,
+  Min,
+} from 'class-validator';
 
 export class UpdateCustomerDto {
   @ApiPropertyOptional({ example: 'Ahmed Khan' })
@@ -34,6 +42,13 @@ export class UpdateCustomerDto {
     message: 'Pehli qist ki tareekh sahi likhein',
   })
   firstDueDate?: string;
+
+  @ApiPropertyOptional({ example: 2000, description: 'Har mahine ki qist ki raqam' })
+  @IsOptional()
+  @IsInt({ message: 'Mahine ki qist ki raqam sahi likhein' })
+  @Min(1, { message: 'Mahine ki qist ki raqam kam az kam 1 honi chahiye' })
+  @Max(2147483647, { message: 'Mahine ki qist ki raqam bohat zyada hai' })
+  monthlyPayment?: number;
 
   @ApiPropertyOptional({ example: 'data:image/jpeg;base64,...' })
   @IsOptional()

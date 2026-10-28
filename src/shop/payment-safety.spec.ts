@@ -53,7 +53,8 @@ describe('Payment Safety & Concurrency (PostgreSQL Integration)', () => {
         name: 'Rashid Khan',
         phone: '03001239999',
         downPayment: 5000,
-        months: 10,
+        initialMonthlyPayment: 1000,
+        monthlyPayment: 1000,
         firstDueDate: '2026-11-01',
         items: {
           create: [{ name: 'Microwave', price: 15000, boughtOn: '2026-10-27' }],
@@ -143,7 +144,8 @@ describe('Payment Safety & Concurrency (PostgreSQL Integration)', () => {
           name: 'Concurrent Customer',
           phone: '03009998888',
           downPayment: 1000,
-          months: 4,
+          initialMonthlyPayment: 1000,
+          monthlyPayment: 1000,
           firstDueDate: '2026-11-01',
           items: {
             create: [{ name: 'Toaster', price: 5000, boughtOn: '2026-10-27' }],

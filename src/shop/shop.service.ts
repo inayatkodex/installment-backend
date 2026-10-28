@@ -22,7 +22,7 @@ import {
   customerCode,
   isRealDate,
   isValidPlan,
-  monthlyOf,
+  MAX_SCHEDULE_INSTALLMENTS,
   paidTotalOf,
   PlanInput,
   startOfToday,
@@ -34,6 +34,7 @@ import {
 const FULL = {
   items: true,
   payments: { orderBy: [{ paidOn: 'asc' }, { createdAt: 'asc' }] },
+  rateChanges: { orderBy: { fromInstallmentNo: 'asc' } },
 } satisfies Prisma.CustomerInclude;
 
 // Lean projection that excludes heavy base64/blob document fields
@@ -44,8 +45,10 @@ const LEAN_SELECT = {
   phone: true,
   photo: true,
   downPayment: true,
-  months: true,
+  initialMonthlyPayment: true,
+  monthlyPayment: true,
   firstDueDate: true,
+  rateChanges: { orderBy: { fromInstallmentNo: 'asc' } },
   items: {
     select: {
       id: true,
@@ -67,7 +70,7 @@ const LEAN_SELECT = {
 } satisfies Prisma.CustomerSelect;
 
 type CustomerFull = Prisma.CustomerGetPayload<{
-  include: { items: true; payments: true };
+  include: { items: true; payments: true; rateChanges: true };
 }>;
 
 type CustomerLean = Prisma.CustomerGetPayload<{
@@ -335,9 +338,9 @@ export class ShopService {
         'Advance raqam kul raqam se zyada nahi ho sakti',
       );
     }
-    if (!isValidPlan(total, dto.downPayment, dto.months)) {
+    if (!isValidPlan(total, dto.downPayment, dto.monthlyPayment)) {
       throw new BadRequestException(
-        'Qiston ki tadaad is raqam ke hisaab se sahi nahi hai',
+        'Mahine ki qist ki raqam is plan ke liye sahi nahi hai',
       );
     }
 
@@ -381,7 +384,8 @@ export class ShopService {
           docCnicBack,
           docOther,
           downPayment: dto.downPayment,
-          months: dto.months,
+          initialMonthlyPayment: dto.monthlyPayment,
+          monthlyPayment: dto.monthlyPayment,
           firstDueDate: dto.firstDueDate,
           items: {
             create: items,
@@ -414,6 +418,108 @@ export class ShopService {
     if (dto.firstDueDate !== undefined) data.firstDueDate = dto.firstDueDate;
     if (dto.photo !== undefined) {
       data.photo = await this.storage.saveBase64(dto.photo, 'customers');
+    }
+
+    if (dto.monthlyPayment !== undefined) {
+      if (!Number.isSafeInteger(dto.monthlyPayment) || dto.monthlyPayment < 1) {
+        throw new BadRequestException('Mahine ki qist ki raqam sahi likhein');
+      }
+      const newMonthlyPayment = dto.monthlyPayment;
+      const currentCustomer = await this.findFull(shopId, id);
+      if (newMonthlyPayment !== currentCustomer.monthlyPayment) {
+        await this.prisma.$transaction(async (tx) => {
+          const locked = await tx.$queryRaw<{ id: string }[]>`
+            SELECT id FROM "customers"
+            WHERE id = ${id} AND "shopId" = ${shopId} AND "deletedAt" IS NULL
+            FOR UPDATE
+          `;
+          if (!locked.length) throw new NotFoundException('Customer nahi mila');
+
+          const customer = await tx.customer.findFirst({
+            where: { id, shopId, deletedAt: null },
+            include: FULL,
+          });
+          if (!customer) throw new NotFoundException('Customer nahi mila');
+          if (newMonthlyPayment === customer.monthlyPayment) {
+            await tx.customer.updateMany({
+              where: { id, shopId, deletedAt: null },
+              data,
+            });
+            return;
+          }
+
+          const schedule = buildSchedule(this.plan(customer), todayIso());
+          const current = schedule.find((row) => row.status !== 'paid');
+          if (!current) {
+            throw new BadRequestException(
+              'Mukammal customer ki qist ki raqam tabdeel nahi ho sakti',
+            );
+          }
+
+          const fromInstallmentNo =
+            current.paid > 0 ? current.no + 1 : current.no;
+          if (fromInstallmentNo > schedule.length) {
+            throw new BadRequestException(
+              'Current qist mukammal karein, phir nayi raqam set karein',
+            );
+          }
+          const rateChanges = customer.rateChanges.map((change) => ({
+            fromInstallmentNo: change.fromInstallmentNo,
+            monthlyPayment: change.monthlyPayment,
+          }));
+          const existingChange = rateChanges.find(
+            (change) => change.fromInstallmentNo === fromInstallmentNo,
+          );
+          if (existingChange) {
+            existingChange.monthlyPayment = newMonthlyPayment;
+          } else {
+            rateChanges.push({
+              fromInstallmentNo,
+              monthlyPayment: newMonthlyPayment,
+            });
+          }
+          rateChanges.sort(
+            (a, b) => a.fromInstallmentNo - b.fromInstallmentNo,
+          );
+          const plan = this.plan(customer);
+          const proposedSchedule = buildSchedule(
+            { ...plan, rateChanges },
+            todayIso(),
+          );
+          const scheduledBalance = proposedSchedule.reduce(
+            (sum, row) => sum + row.expected,
+            0,
+          );
+          if (
+            proposedSchedule.length >= MAX_SCHEDULE_INSTALLMENTS &&
+            scheduledBalance < totalOf(plan) - customer.downPayment
+          ) {
+            throw new BadRequestException('Qiston ka schedule bohat lamba hai');
+          }
+
+          const result = await tx.customer.updateMany({
+            where: { id, shopId, deletedAt: null },
+            data: { ...data, monthlyPayment: newMonthlyPayment },
+          });
+          if (!result.count) throw new NotFoundException('Customer nahi mila');
+
+          await tx.customerRateChange.upsert({
+            where: {
+              customerId_fromInstallmentNo: {
+                customerId: id,
+                fromInstallmentNo,
+              },
+            },
+            create: {
+              customerId: id,
+              fromInstallmentNo,
+              monthlyPayment: newMonthlyPayment,
+            },
+            update: { monthlyPayment: newMonthlyPayment },
+          });
+        });
+        return ok(await this.detailOf(await this.findFull(shopId, id)));
+      }
     }
 
     const result = await this.prisma.customer.updateMany({
@@ -592,8 +698,9 @@ export class ShopService {
     return {
       items: c.items,
       downPayment: c.downPayment,
-      months: c.months,
+      initialMonthlyPayment: c.initialMonthlyPayment,
       firstDueDate: c.firstDueDate,
+      rateChanges: c.rateChanges,
       payments: c.payments.filter((p) => !p.reversedAt),
     };
   }
@@ -620,7 +727,7 @@ export class ShopService {
       status,
       remaining,
       paidCount: rows.filter((r) => r.status === 'paid').length,
-      totalCount: c.months,
+      totalCount: rows.length,
       progress: total ? Math.round((paid / total) * 100) : 0,
     };
   }
@@ -642,7 +749,7 @@ export class ShopService {
       total: totalOf(plan),
       paid: paidTotalOf(plan),
       downPayment: c.downPayment,
-      monthly: monthlyOf(plan),
+      monthly: c.monthlyPayment,
       firstDueDate: c.firstDueDate,
       items: c.items.map((i) => ({
         name: i.name,

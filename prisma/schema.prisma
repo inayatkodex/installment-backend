@@ -78,27 +78,30 @@ model Admin {
 
   @@map("admins")
 }
-model Customer {
-  id           String    @id @default(uuid())
-  shopId       String
-  shop         Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  customerNo   Int
-  name         String
-  fatherName   String?
-  phone        String
-  cnic         String?
-  address      String?
-  photo        String?   @db.Text
-  docCnicFront String?   @db.Text
-  docCnicBack  String?   @db.Text
-  docOther     String?   @db.Text
-  downPayment  Int
-  months       Int
-  firstDueDate String // "YYYY-MM-DD"
-  deletedAt    DateTime?
 
-  items    CustomerItem[]
-  payments Payment[]
+model Customer {
+  id                    String    @id @default(uuid())
+  shopId                String
+  shop                  Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  customerNo            Int
+  name                  String
+  fatherName            String?
+  phone                 String
+  cnic                  String?
+  address               String?
+  photo                 String?   @db.Text
+  docCnicFront          String?   @db.Text
+  docCnicBack           String?   @db.Text
+  docOther              String?   @db.Text
+  downPayment           Int
+  initialMonthlyPayment Int
+  monthlyPayment        Int
+  firstDueDate          String // "YYYY-MM-DD"
+  deletedAt             DateTime?
+
+  items       CustomerItem[]
+  payments    Payment[]
+  rateChanges CustomerRateChange[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -107,6 +110,19 @@ model Customer {
   @@index([shopId, deletedAt])
   @@index([shopId, phone])
   @@map("customers")
+}
+
+model CustomerRateChange {
+  id                String   @id @default(uuid())
+  customerId        String
+  customer          Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  fromInstallmentNo Int
+  monthlyPayment    Int
+  createdAt         DateTime @default(now())
+
+  @@unique([customerId, fromInstallmentNo])
+  @@index([customerId])
+  @@map("customer_rate_changes")
 }
 
 model CustomerItem {
@@ -143,10 +159,10 @@ model Payment {
 
 model AuditLog {
   id         String   @id @default(uuid())
-  actorType  String   // "shop" | "admin" | "system"
+  actorType  String // "shop" | "admin" | "system"
   actorId    String
-  action     String   // "PAYMENT_RECEIVED", "PAYMENT_REVERSED", "SHOP_STATUS_CHANGED", "SHOP_FEE_UPDATED", "CUSTOMER_DELETED"
-  entityType String   // "Payment", "Shop", "FeeRecord", "Customer"
+  action     String // "PAYMENT_RECEIVED", "PAYMENT_REVERSED", "SHOP_STATUS_CHANGED", "SHOP_FEE_UPDATED", "CUSTOMER_DELETED"
+  entityType String // "Payment", "Shop", "FeeRecord", "Customer"
   entityId   String
   details    Json?
   ipAddress  String?

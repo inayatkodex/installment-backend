@@ -38,6 +38,11 @@ export type Admin = Prisma.AdminModel
  */
 export type Customer = Prisma.CustomerModel
 /**
+ * Model CustomerRateChange
+ * 
+ */
+export type CustomerRateChange = Prisma.CustomerRateChangeModel
+/**
  * Model CustomerItem
  * 
  */

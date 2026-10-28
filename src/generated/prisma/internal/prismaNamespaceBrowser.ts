@@ -55,6 +55,7 @@ export const ModelName = {
   FeeRecord: 'FeeRecord',
   Admin: 'Admin',
   Customer: 'Customer',
+  CustomerRateChange: 'CustomerRateChange',
   CustomerItem: 'CustomerItem',
   Payment: 'Payment',
   AuditLog: 'AuditLog'
@@ -142,7 +143,8 @@ export const CustomerScalarFieldEnum = {
   docCnicBack: 'docCnicBack',
   docOther: 'docOther',
   downPayment: 'downPayment',
-  months: 'months',
+  initialMonthlyPayment: 'initialMonthlyPayment',
+  monthlyPayment: 'monthlyPayment',
   firstDueDate: 'firstDueDate',
   deletedAt: 'deletedAt',
   createdAt: 'createdAt',
@@ -150,6 +152,17 @@ export const CustomerScalarFieldEnum = {
 } as const
 
 export type CustomerScalarFieldEnum = (typeof CustomerScalarFieldEnum)[keyof typeof CustomerScalarFieldEnum]
+
+
+export const CustomerRateChangeScalarFieldEnum = {
+  id: 'id',
+  customerId: 'customerId',
+  fromInstallmentNo: 'fromInstallmentNo',
+  monthlyPayment: 'monthlyPayment',
+  createdAt: 'createdAt'
+} as const
+
+export type CustomerRateChangeScalarFieldEnum = (typeof CustomerRateChangeScalarFieldEnum)[keyof typeof CustomerRateChangeScalarFieldEnum]
 
 
 export const CustomerItemScalarFieldEnum = {

@@ -401,6 +401,7 @@ export const ModelName = {
   FeeRecord: 'FeeRecord',
   Admin: 'Admin',
   Customer: 'Customer',
+  CustomerRateChange: 'CustomerRateChange',
   CustomerItem: 'CustomerItem',
   Payment: 'Payment',
   AuditLog: 'AuditLog'
@@ -419,7 +420,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "shop" | "feeRecord" | "admin" | "customer" | "customerItem" | "payment" | "auditLog"
+    modelProps: "shop" | "feeRecord" | "admin" | "customer" | "customerRateChange" | "customerItem" | "payment" | "auditLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -716,6 +717,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.CustomerCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.CustomerCountAggregateOutputType> | number
+        }
+      }
+    }
+    CustomerRateChange: {
+      payload: Prisma.$CustomerRateChangePayload<ExtArgs>
+      fields: Prisma.CustomerRateChangeFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CustomerRateChangeFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerRateChangePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CustomerRateChangeFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerRateChangePayload>
+        }
+        findFirst: {
+          args: Prisma.CustomerRateChangeFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerRateChangePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CustomerRateChangeFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerRateChangePayload>
+        }
+        findMany: {
+          args: Prisma.CustomerRateChangeFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerRateChangePayload>[]
+        }
+        create: {
+          args: Prisma.CustomerRateChangeCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerRateChangePayload>
+        }
+        createMany: {
+          args: Prisma.CustomerRateChangeCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CustomerRateChangeCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerRateChangePayload>[]
+        }
+        delete: {
+          args: Prisma.CustomerRateChangeDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerRateChangePayload>
+        }
+        update: {
+          args: Prisma.CustomerRateChangeUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerRateChangePayload>
+        }
+        deleteMany: {
+          args: Prisma.CustomerRateChangeDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CustomerRateChangeUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CustomerRateChangeUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerRateChangePayload>[]
+        }
+        upsert: {
+          args: Prisma.CustomerRateChangeUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerRateChangePayload>
+        }
+        aggregate: {
+          args: Prisma.CustomerRateChangeAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCustomerRateChange>
+        }
+        groupBy: {
+          args: Prisma.CustomerRateChangeGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CustomerRateChangeGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CustomerRateChangeCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CustomerRateChangeCountAggregateOutputType> | number
         }
       }
     }
@@ -1046,7 +1121,8 @@ export const CustomerScalarFieldEnum = {
   docCnicBack: 'docCnicBack',
   docOther: 'docOther',
   downPayment: 'downPayment',
-  months: 'months',
+  initialMonthlyPayment: 'initialMonthlyPayment',
+  monthlyPayment: 'monthlyPayment',
   firstDueDate: 'firstDueDate',
   deletedAt: 'deletedAt',
   createdAt: 'createdAt',
@@ -1054,6 +1130,17 @@ export const CustomerScalarFieldEnum = {
 } as const
 
 export type CustomerScalarFieldEnum = (typeof CustomerScalarFieldEnum)[keyof typeof CustomerScalarFieldEnum]
+
+
+export const CustomerRateChangeScalarFieldEnum = {
+  id: 'id',
+  customerId: 'customerId',
+  fromInstallmentNo: 'fromInstallmentNo',
+  monthlyPayment: 'monthlyPayment',
+  createdAt: 'createdAt'
+} as const
+
+export type CustomerRateChangeScalarFieldEnum = (typeof CustomerRateChangeScalarFieldEnum)[keyof typeof CustomerRateChangeScalarFieldEnum]
 
 
 export const CustomerItemScalarFieldEnum = {
@@ -1399,6 +1486,7 @@ export type GlobalOmitConfig = {
   feeRecord?: Prisma.FeeRecordOmit
   admin?: Prisma.AdminOmit
   customer?: Prisma.CustomerOmit
+  customerRateChange?: Prisma.CustomerRateChangeOmit
   customerItem?: Prisma.CustomerItemOmit
   payment?: Prisma.PaymentOmit
   auditLog?: Prisma.AuditLogOmit

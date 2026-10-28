@@ -17,8 +17,9 @@ export interface InstallmentRow {
 export interface PlanInput {
   items: { price: number }[];
   downPayment: number;
-  months: number;
+  initialMonthlyPayment: number;
   firstDueDate: string;
+  rateChanges: { fromInstallmentNo: number; monthlyPayment: number }[];
   /** Sirf wo payments jo wapas nahi hui, purani pehle */
   payments: {
     amount: number;
@@ -73,35 +74,53 @@ export const totalOf = (c: Pick<PlanInput, 'items'>) =>
 export const paidTotalOf = (c: PlanInput) =>
   c.downPayment + c.payments.reduce((s, p) => s + p.amount, 0);
 
-export const monthlyOf = (c: PlanInput) =>
-  Math.ceil((totalOf(c) - c.downPayment) / c.months);
+export const monthlyOf = (c: PlanInput) => c.initialMonthlyPayment;
 
-/** Aakhri qist kam az kam 1 rupay ki honi chahiye */
+export const MAX_SCHEDULE_INSTALLMENTS = 1200;
+
 export function isValidPlan(
   total: number,
   down: number,
-  months: number,
+  monthlyPayment: number,
 ): boolean {
   const remaining = total - down;
-  if (remaining < 0) return false;
-  if (remaining === 0) return true;
-  const monthly = Math.ceil(remaining / months);
-  return remaining - monthly * (months - 1) >= 1;
+  if (remaining < 0 || !Number.isSafeInteger(monthlyPayment)) return false;
+  if (remaining === 0) return monthlyPayment >= 0;
+  if (monthlyPayment <= 0) return false;
+  return Math.ceil(remaining / monthlyPayment) <= MAX_SCHEDULE_INSTALLMENTS;
 }
 
 export function buildSchedule(c: PlanInput, today: string): InstallmentRow[] {
   const remaining = totalOf(c) - c.downPayment;
-  const monthly = monthlyOf(c);
+  const rateChanges = c.rateChanges;
+  const rows: InstallmentRow[] = [];
+  let scheduled = 0;
+  let installmentNo = 1;
+  let changeIndex = 0;
+  let activeMonthly = monthlyOf(c);
 
-  const rows: InstallmentRow[] = Array.from({ length: c.months }, (_, i) => ({
-    no: i + 1,
-    dueDate: addMonths(c.firstDueDate, i),
-    expected:
-      i === c.months - 1 ? remaining - monthly * (c.months - 1) : monthly,
-    paid: 0,
-    status: 'pending',
-    daysLate: 0,
-  }));
+  while (scheduled < remaining && installmentNo <= MAX_SCHEDULE_INSTALLMENTS) {
+    while (
+      changeIndex < rateChanges.length &&
+      rateChanges[changeIndex].fromInstallmentNo <= installmentNo
+    ) {
+      activeMonthly = rateChanges[changeIndex].monthlyPayment;
+      changeIndex += 1;
+    }
+    if (activeMonthly <= 0) break;
+
+    const expected = Math.min(activeMonthly, remaining - scheduled);
+    rows.push({
+      no: installmentNo,
+      dueDate: addMonths(c.firstDueDate, installmentNo - 1),
+      expected,
+      paid: 0,
+      status: 'pending',
+      daysLate: 0,
+    });
+    scheduled += expected;
+    installmentNo += 1;
+  }
 
   // Har payment sab se purani adhoori qist mein lagti hai
   let idx = 0;

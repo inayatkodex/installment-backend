@@ -90,11 +90,11 @@ export class CreateCustomerDto {
   @Min(0, { message: 'Advance raqam sahi likhein' })
   downPayment: number;
 
-  @ApiProperty({ example: 12, description: 'Qiston ki tadaad' })
-  @IsInt({ message: 'Qiston ki tadaad sahi likhein' })
-  @Min(1, { message: 'Qiston ki tadaad sahi likhein' })
-  @Max(120, { message: 'Qiston ki tadaad 120 se zyada nahi ho sakti' })
-  months: number;
+  @ApiProperty({ example: 2000, description: 'Har mahine ki qist ki raqam' })
+  @IsInt({ message: 'Mahine ki qist ki raqam sahi likhein' })
+  @Min(0, { message: 'Mahine ki qist 0 ya us se zyada honi chahiye' })
+  @Max(2147483647, { message: 'Mahine ki qist ki raqam bohat zyada hai' })
+  monthlyPayment: number;
 
   @ApiProperty({ example: '2026-11-25', description: 'YYYY-MM-DD' })
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
