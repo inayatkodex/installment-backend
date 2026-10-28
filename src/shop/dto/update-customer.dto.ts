@@ -28,6 +28,13 @@ export class UpdateCustomerDto {
   @IsString()
   address?: string;
 
+  @ApiPropertyOptional({ example: '2026-11-28' })
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, {
+    message: 'Pehli qist ki tareekh sahi likhein',
+  })
+  firstDueDate?: string;
+
   @ApiPropertyOptional({ example: 'data:image/jpeg;base64,...' })
   @IsOptional()
   @IsString()

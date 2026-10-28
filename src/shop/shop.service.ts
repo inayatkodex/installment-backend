@@ -401,12 +401,17 @@ export class ShopService {
 
   /* ================= 9. CUSTOMER EDIT ================= */
   async updateCustomer(shopId: string, id: string, dto: UpdateCustomerDto) {
+    if (dto.firstDueDate !== undefined && !isRealDate(dto.firstDueDate)) {
+      throw new BadRequestException('Pehli qist ki tareekh sahi likhein');
+    }
+
     const data: Prisma.CustomerUpdateManyMutationInput = {};
     if (dto.name !== undefined) data.name = dto.name.trim();
     if (dto.fatherName !== undefined) data.fatherName = clean(dto.fatherName);
     if (dto.phone !== undefined) data.phone = digits(dto.phone);
     if (dto.cnic !== undefined) data.cnic = clean(dto.cnic);
     if (dto.address !== undefined) data.address = clean(dto.address);
+    if (dto.firstDueDate !== undefined) data.firstDueDate = dto.firstDueDate;
     if (dto.photo !== undefined) {
       data.photo = await this.storage.saveBase64(dto.photo, 'customers');
     }
@@ -638,6 +643,7 @@ export class ShopService {
       paid: paidTotalOf(plan),
       downPayment: c.downPayment,
       monthly: monthlyOf(plan),
+      firstDueDate: c.firstDueDate,
       items: c.items.map((i) => ({
         name: i.name,
         price: i.price,
