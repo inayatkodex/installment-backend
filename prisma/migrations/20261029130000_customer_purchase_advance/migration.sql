@@ -1,0 +1,2 @@
+ALTER TABLE "customer_purchases"
+  ADD COLUMN IF NOT EXISTS "downPayment" INTEGER NOT NULL DEFAULT 0;

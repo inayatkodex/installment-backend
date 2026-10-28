@@ -80,28 +80,30 @@ model Admin {
 }
 
 model Customer {
-  id                    String    @id @default(uuid())
-  shopId                String
-  shop                  Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  customerNo            Int
-  name                  String
-  fatherName            String?
-  phone                 String
-  cnic                  String?
-  address               String?
-  photo                 String?   @db.Text
-  docCnicFront          String?   @db.Text
-  docCnicBack           String?   @db.Text
-  docOther              String?   @db.Text
-  downPayment           Int
-  initialMonthlyPayment Int
-  monthlyPayment        Int
-  firstDueDate          String // "YYYY-MM-DD"
-  deletedAt             DateTime?
+  id                      String    @id @default(uuid())
+  shopId                  String
+  shop                    Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  customerNo              Int
+  name                    String
+  fatherName              String?
+  phone                   String
+  cnic                    String?
+  address                 String?
+  photo                   String?   @db.Text
+  docCnicFront            String?   @db.Text
+  docCnicBack             String?   @db.Text
+  docOther                String?   @db.Text
+  downPayment             Int
+  initialMonthlyPayment   Int
+  monthlyPayment          Int
+  monthlyCollectionTarget Int?
+  firstDueDate            String // "YYYY-MM-DD"
+  deletedAt               DateTime?
 
   items       CustomerItem[]
   payments    Payment[]
   rateChanges CustomerRateChange[]
+  purchases   CustomerPurchase[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -123,6 +125,36 @@ model CustomerRateChange {
   @@unique([customerId, fromInstallmentNo])
   @@index([customerId])
   @@map("customer_rate_changes")
+}
+
+model CustomerPurchase {
+  id                           String                 @id @default(uuid())
+  customerId                   String
+  customer                     Customer               @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  downPayment                  Int                    @default(0)
+  initialMonthlyPayment        Int
+  monthlyPayment               Int
+  firstDueDate                 String?
+  allocationStartInstallmentNo Int
+  items                        CustomerPurchaseItem[]
+  createdAt                    DateTime               @default(now())
+
+  @@index([customerId, createdAt])
+  @@map("customer_purchases")
+}
+
+model CustomerPurchaseItem {
+  id         String           @id @default(uuid())
+  purchaseId String
+  purchase   CustomerPurchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  name       String
+  price      Int
+  photo      String?          @db.Text
+  boughtOn   String
+  createdAt  DateTime         @default(now())
+
+  @@index([purchaseId])
+  @@map("customer_purchase_items")
 }
 
 model CustomerItem {

@@ -402,6 +402,8 @@ export const ModelName = {
   Admin: 'Admin',
   Customer: 'Customer',
   CustomerRateChange: 'CustomerRateChange',
+  CustomerPurchase: 'CustomerPurchase',
+  CustomerPurchaseItem: 'CustomerPurchaseItem',
   CustomerItem: 'CustomerItem',
   Payment: 'Payment',
   AuditLog: 'AuditLog'
@@ -420,7 +422,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "shop" | "feeRecord" | "admin" | "customer" | "customerRateChange" | "customerItem" | "payment" | "auditLog"
+    modelProps: "shop" | "feeRecord" | "admin" | "customer" | "customerRateChange" | "customerPurchase" | "customerPurchaseItem" | "customerItem" | "payment" | "auditLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -794,6 +796,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    CustomerPurchase: {
+      payload: Prisma.$CustomerPurchasePayload<ExtArgs>
+      fields: Prisma.CustomerPurchaseFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CustomerPurchaseFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchasePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CustomerPurchaseFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchasePayload>
+        }
+        findFirst: {
+          args: Prisma.CustomerPurchaseFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchasePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CustomerPurchaseFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchasePayload>
+        }
+        findMany: {
+          args: Prisma.CustomerPurchaseFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchasePayload>[]
+        }
+        create: {
+          args: Prisma.CustomerPurchaseCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchasePayload>
+        }
+        createMany: {
+          args: Prisma.CustomerPurchaseCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CustomerPurchaseCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchasePayload>[]
+        }
+        delete: {
+          args: Prisma.CustomerPurchaseDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchasePayload>
+        }
+        update: {
+          args: Prisma.CustomerPurchaseUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchasePayload>
+        }
+        deleteMany: {
+          args: Prisma.CustomerPurchaseDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CustomerPurchaseUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CustomerPurchaseUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchasePayload>[]
+        }
+        upsert: {
+          args: Prisma.CustomerPurchaseUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchasePayload>
+        }
+        aggregate: {
+          args: Prisma.CustomerPurchaseAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCustomerPurchase>
+        }
+        groupBy: {
+          args: Prisma.CustomerPurchaseGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CustomerPurchaseGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CustomerPurchaseCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CustomerPurchaseCountAggregateOutputType> | number
+        }
+      }
+    }
+    CustomerPurchaseItem: {
+      payload: Prisma.$CustomerPurchaseItemPayload<ExtArgs>
+      fields: Prisma.CustomerPurchaseItemFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CustomerPurchaseItemFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchaseItemPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CustomerPurchaseItemFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchaseItemPayload>
+        }
+        findFirst: {
+          args: Prisma.CustomerPurchaseItemFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchaseItemPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CustomerPurchaseItemFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchaseItemPayload>
+        }
+        findMany: {
+          args: Prisma.CustomerPurchaseItemFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchaseItemPayload>[]
+        }
+        create: {
+          args: Prisma.CustomerPurchaseItemCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchaseItemPayload>
+        }
+        createMany: {
+          args: Prisma.CustomerPurchaseItemCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CustomerPurchaseItemCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchaseItemPayload>[]
+        }
+        delete: {
+          args: Prisma.CustomerPurchaseItemDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchaseItemPayload>
+        }
+        update: {
+          args: Prisma.CustomerPurchaseItemUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchaseItemPayload>
+        }
+        deleteMany: {
+          args: Prisma.CustomerPurchaseItemDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CustomerPurchaseItemUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CustomerPurchaseItemUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchaseItemPayload>[]
+        }
+        upsert: {
+          args: Prisma.CustomerPurchaseItemUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchaseItemPayload>
+        }
+        aggregate: {
+          args: Prisma.CustomerPurchaseItemAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCustomerPurchaseItem>
+        }
+        groupBy: {
+          args: Prisma.CustomerPurchaseItemGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CustomerPurchaseItemGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CustomerPurchaseItemCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CustomerPurchaseItemCountAggregateOutputType> | number
+        }
+      }
+    }
     CustomerItem: {
       payload: Prisma.$CustomerItemPayload<ExtArgs>
       fields: Prisma.CustomerItemFieldRefs
@@ -1123,6 +1273,7 @@ export const CustomerScalarFieldEnum = {
   downPayment: 'downPayment',
   initialMonthlyPayment: 'initialMonthlyPayment',
   monthlyPayment: 'monthlyPayment',
+  monthlyCollectionTarget: 'monthlyCollectionTarget',
   firstDueDate: 'firstDueDate',
   deletedAt: 'deletedAt',
   createdAt: 'createdAt',
@@ -1141,6 +1292,33 @@ export const CustomerRateChangeScalarFieldEnum = {
 } as const
 
 export type CustomerRateChangeScalarFieldEnum = (typeof CustomerRateChangeScalarFieldEnum)[keyof typeof CustomerRateChangeScalarFieldEnum]
+
+
+export const CustomerPurchaseScalarFieldEnum = {
+  id: 'id',
+  customerId: 'customerId',
+  downPayment: 'downPayment',
+  initialMonthlyPayment: 'initialMonthlyPayment',
+  monthlyPayment: 'monthlyPayment',
+  firstDueDate: 'firstDueDate',
+  allocationStartInstallmentNo: 'allocationStartInstallmentNo',
+  createdAt: 'createdAt'
+} as const
+
+export type CustomerPurchaseScalarFieldEnum = (typeof CustomerPurchaseScalarFieldEnum)[keyof typeof CustomerPurchaseScalarFieldEnum]
+
+
+export const CustomerPurchaseItemScalarFieldEnum = {
+  id: 'id',
+  purchaseId: 'purchaseId',
+  name: 'name',
+  price: 'price',
+  photo: 'photo',
+  boughtOn: 'boughtOn',
+  createdAt: 'createdAt'
+} as const
+
+export type CustomerPurchaseItemScalarFieldEnum = (typeof CustomerPurchaseItemScalarFieldEnum)[keyof typeof CustomerPurchaseItemScalarFieldEnum]
 
 
 export const CustomerItemScalarFieldEnum = {
@@ -1487,6 +1665,8 @@ export type GlobalOmitConfig = {
   admin?: Prisma.AdminOmit
   customer?: Prisma.CustomerOmit
   customerRateChange?: Prisma.CustomerRateChangeOmit
+  customerPurchase?: Prisma.CustomerPurchaseOmit
+  customerPurchaseItem?: Prisma.CustomerPurchaseItemOmit
   customerItem?: Prisma.CustomerItemOmit
   payment?: Prisma.PaymentOmit
   auditLog?: Prisma.AuditLogOmit

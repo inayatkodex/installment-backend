@@ -14,6 +14,53 @@ export interface InstallmentRow {
   note?: string;
 }
 
+export function combineInstallmentSchedules(
+  schedules: InstallmentRow[][],
+): InstallmentRow[] {
+  const rowsByDate = new Map<string, InstallmentRow[]>();
+  for (const schedule of schedules) {
+    for (const row of schedule) {
+      const rows = rowsByDate.get(row.dueDate) ?? [];
+      rows.push(row);
+      rowsByDate.set(row.dueDate, rows);
+    }
+  }
+
+  return [...rowsByDate.entries()]
+    .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+    .map(([dueDate, rows], index) => {
+      const expected = rows.reduce((sum, row) => sum + row.expected, 0);
+      const paid = rows.reduce((sum, row) => sum + row.paid, 0);
+      const daysLate =
+        paid < expected
+          ? Math.max(...rows.map((row) => row.daysLate))
+          : 0;
+      const latestPayment = rows
+        .filter((row) => row.paidOn)
+        .sort((a, b) => (a.paidOn ?? '').localeCompare(b.paidOn ?? ''))
+        .at(-1);
+
+      return {
+        no: index + 1,
+        dueDate,
+        expected,
+        paid,
+        status:
+          paid >= expected
+            ? 'paid'
+            : paid > 0
+              ? 'partial'
+              : daysLate > 0
+                ? 'overdue'
+                : 'pending',
+        daysLate,
+        paidOn: latestPayment?.paidOn,
+        method: latestPayment?.method,
+        note: latestPayment?.note,
+      };
+    });
+}
+
 export interface PlanInput {
   items: { price: number }[];
   downPayment: number;
@@ -27,6 +74,30 @@ export interface PlanInput {
     method: string;
     note: string | null;
   }[];
+}
+
+export interface MultiPlanInput {
+  id: string;
+  items: {
+    name: string;
+    price: number;
+    boughtOn: string;
+    photo?: string | null;
+  }[];
+  downPayment: number;
+  initialMonthlyPayment: number;
+  firstDueDate: string | null;
+  scheduleStartDate?: string;
+  rateChanges: { fromInstallmentNo: number; monthlyPayment: number }[];
+  createdAt: Date;
+}
+
+export interface MultiPlanPayment {
+  amount: number;
+  paidOn: Date;
+  createdAt: Date;
+  method: string;
+  note: string | null;
 }
 
 const TZ = 'Asia/Karachi';
@@ -75,6 +146,16 @@ export const paidTotalOf = (c: PlanInput) =>
   c.downPayment + c.payments.reduce((s, p) => s + p.amount, 0);
 
 export const monthlyOf = (c: PlanInput) => c.initialMonthlyPayment;
+
+export function activeMonthlyTotal(
+  plans: { remaining: number; monthly: number }[],
+  target?: number | null,
+): number {
+  const activeTotal = plans
+    .filter((plan) => plan.remaining > 0)
+    .reduce((sum, plan) => sum + plan.monthly, 0);
+  return target == null ? activeTotal : Math.min(target, activeTotal);
+}
 
 export const MAX_SCHEDULE_INSTALLMENTS = 1200;
 
@@ -150,4 +231,73 @@ export function buildSchedule(c: PlanInput, today: string): InstallmentRow[] {
             : 'pending';
   }
   return rows;
+}
+
+export function buildMultiPlanSchedules(
+  plans: MultiPlanInput[],
+  payments: MultiPlanPayment[],
+  fallbackDueDate: string,
+  today: string,
+): InstallmentRow[][] {
+  const schedules = plans.map((plan) =>
+    buildSchedule(
+      {
+        ...plan,
+        firstDueDate:
+          plan.firstDueDate ?? plan.scheduleStartDate ?? fallbackDueDate,
+        payments: [],
+      },
+      today,
+    ),
+  );
+  const cursors = plans.map(() => 0);
+  const orderedPayments = [...payments].sort(
+    (a, b) =>
+      a.paidOn.getTime() - b.paidOn.getTime() ||
+      a.createdAt.getTime() - b.createdAt.getTime(),
+  );
+
+  for (const payment of orderedPayments) {
+    let remaining = payment.amount;
+    while (remaining > 0) {
+      let nextPlanIndex = -1;
+      let nextDueDate = '';
+      for (let planIndex = 0; planIndex < plans.length; planIndex += 1) {
+        if (plans[planIndex].createdAt > payment.createdAt) continue;
+        const row = schedules[planIndex][cursors[planIndex]];
+        if (!row) continue;
+        if (nextPlanIndex < 0 || row.dueDate < nextDueDate) {
+          nextPlanIndex = planIndex;
+          nextDueDate = row.dueDate;
+        }
+      }
+
+      if (nextPlanIndex < 0) break;
+      const row = schedules[nextPlanIndex][cursors[nextPlanIndex]];
+      const amount = Math.min(row.expected - row.paid, remaining);
+      row.paid += amount;
+      row.paidOn = dateOnly(payment.paidOn);
+      row.method = payment.method;
+      if (payment.note) row.note = payment.note;
+      remaining -= amount;
+      if (row.paid >= row.expected) cursors[nextPlanIndex] += 1;
+    }
+  }
+
+  for (const rows of schedules) {
+    for (const row of rows) {
+      const late = row.dueDate < today && row.paid < row.expected;
+      row.daysLate = late ? diffDays(row.dueDate, today) : 0;
+      row.status =
+        row.paid >= row.expected
+          ? 'paid'
+          : row.paid > 0
+            ? 'partial'
+            : late
+              ? 'overdue'
+              : 'pending';
+    }
+  }
+
+  return schedules;
 }

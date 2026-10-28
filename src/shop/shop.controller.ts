@@ -18,6 +18,7 @@ import type { Request } from 'express';
 import { ShopId } from '../common/decorators/shop-id.decorator';
 import { ShopGuard } from '../common/guards/shop.guard';
 import { CreateCustomerDto } from './dto/create-customer.dto';
+import { CreateCustomerPurchaseDto } from './dto/create-customer-purchase.dto';
 import { ListCustomersQueryDto } from './dto/list-customers-query.dto';
 import { ReceivePaymentDto } from './dto/receive-payment.dto';
 import { StatusQueryDto } from './dto/status-query.dto';
@@ -103,6 +104,17 @@ export class ShopController {
   @ApiOperation({ summary: 'Customer ki detail aur qiston ka schedule' })
   detail(@ShopId() shopId: string, @Param('id') id: string) {
     return this.shop.getCustomer(shopId, id);
+  }
+
+  @Post('customers/:id/purchases')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Customer ki nayi khareedari aur qist ka plan banana' })
+  addPurchase(
+    @ShopId() shopId: string,
+    @Param('id') id: string,
+    @Body() dto: CreateCustomerPurchaseDto,
+  ) {
+    return this.shop.addCustomerPurchase(shopId, id, dto);
   }
 
   @Put('customers/:id')

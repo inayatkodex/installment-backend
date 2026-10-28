@@ -65,6 +65,16 @@ export type Customer = Prisma.CustomerModel
  */
 export type CustomerRateChange = Prisma.CustomerRateChangeModel
 /**
+ * Model CustomerPurchase
+ * 
+ */
+export type CustomerPurchase = Prisma.CustomerPurchaseModel
+/**
+ * Model CustomerPurchaseItem
+ * 
+ */
+export type CustomerPurchaseItem = Prisma.CustomerPurchaseItemModel
+/**
  * Model CustomerItem
  * 
  */

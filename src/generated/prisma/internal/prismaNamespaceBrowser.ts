@@ -56,6 +56,8 @@ export const ModelName = {
   Admin: 'Admin',
   Customer: 'Customer',
   CustomerRateChange: 'CustomerRateChange',
+  CustomerPurchase: 'CustomerPurchase',
+  CustomerPurchaseItem: 'CustomerPurchaseItem',
   CustomerItem: 'CustomerItem',
   Payment: 'Payment',
   AuditLog: 'AuditLog'
@@ -145,6 +147,7 @@ export const CustomerScalarFieldEnum = {
   downPayment: 'downPayment',
   initialMonthlyPayment: 'initialMonthlyPayment',
   monthlyPayment: 'monthlyPayment',
+  monthlyCollectionTarget: 'monthlyCollectionTarget',
   firstDueDate: 'firstDueDate',
   deletedAt: 'deletedAt',
   createdAt: 'createdAt',
@@ -163,6 +166,33 @@ export const CustomerRateChangeScalarFieldEnum = {
 } as const
 
 export type CustomerRateChangeScalarFieldEnum = (typeof CustomerRateChangeScalarFieldEnum)[keyof typeof CustomerRateChangeScalarFieldEnum]
+
+
+export const CustomerPurchaseScalarFieldEnum = {
+  id: 'id',
+  customerId: 'customerId',
+  downPayment: 'downPayment',
+  initialMonthlyPayment: 'initialMonthlyPayment',
+  monthlyPayment: 'monthlyPayment',
+  firstDueDate: 'firstDueDate',
+  allocationStartInstallmentNo: 'allocationStartInstallmentNo',
+  createdAt: 'createdAt'
+} as const
+
+export type CustomerPurchaseScalarFieldEnum = (typeof CustomerPurchaseScalarFieldEnum)[keyof typeof CustomerPurchaseScalarFieldEnum]
+
+
+export const CustomerPurchaseItemScalarFieldEnum = {
+  id: 'id',
+  purchaseId: 'purchaseId',
+  name: 'name',
+  price: 'price',
+  photo: 'photo',
+  boughtOn: 'boughtOn',
+  createdAt: 'createdAt'
+} as const
+
+export type CustomerPurchaseItemScalarFieldEnum = (typeof CustomerPurchaseItemScalarFieldEnum)[keyof typeof CustomerPurchaseItemScalarFieldEnum]
 
 
 export const CustomerItemScalarFieldEnum = {
