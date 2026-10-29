@@ -105,6 +105,43 @@ describe('Payment Safety & Concurrency (PostgreSQL Integration)', () => {
   });
 
   describe('2. Idempotency Key Handling', () => {
+    it('blocks a repeated same-amount payment made within the cooldown', async () => {
+      const customer = await prisma.customer.create({
+        data: {
+          shopId: testShopId,
+          customerNo: 20000 + Math.floor(Math.random() * 100000),
+          name: 'Quick Successive Payment Customer',
+          phone: `0300${Math.floor(100000000 + Math.random() * 900000000)}`,
+          downPayment: 0,
+          initialMonthlyPayment: 5000,
+          monthlyPayment: 5000,
+          firstDueDate: '2026-11-01',
+          items: {
+            create: [
+              { name: 'Test item', price: 20000, boughtOn: '2026-10-27' },
+            ],
+          },
+        },
+      });
+
+      await shopService.receivePayment(testShopId, {
+        customerId: customer.id,
+        amount: 5000,
+        note: 'Installment',
+      });
+      await expect(
+        shopService.receivePayment(testShopId, {
+          customerId: customer.id,
+          amount: 5000,
+          note: 'Installment',
+        }),
+      ).rejects.toThrow('thori dair baad dobara koshish karein');
+
+      await expect(
+        prisma.payment.count({ where: { customerId: customer.id } }),
+      ).resolves.toBe(1);
+    });
+
     it('should not record a duplicate payment when same idempotencyKey is retried', async () => {
       const idempotencyKey = crypto.randomUUID();
 

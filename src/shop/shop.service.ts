@@ -258,20 +258,18 @@ export class ShopService {
 
       if (!c) throw new NotFoundException('Customer nahi mila');
 
-      // Double-click protection for legacy clients without an idempotency key:
-      // If the exact same customer, amount, and note was created within the last 3 seconds, suppress duplicate
-      if (!trimmedKey) {
-        const threeSecondsAgo = new Date(Date.now() - 3000);
-        const recentDuplicate = c.payments.find(
-          (p) =>
-            !p.reversedAt &&
-            p.amount === dto.amount &&
-            p.createdAt >= threeSecondsAgo &&
-            (p.note ?? null) === (dto.note?.trim() ?? null),
+      const threeSecondsAgo = new Date(Date.now() - 3000);
+      const recentDuplicate = c.payments.find(
+        (payment) =>
+          !payment.reversedAt &&
+          payment.amount === dto.amount &&
+          payment.createdAt >= threeSecondsAgo &&
+          (payment.note ?? null) === (dto.note?.trim() ?? null),
+      );
+      if (recentDuplicate) {
+        throw new BadRequestException(
+          'Yeh raqam abhi receive hui hai, thori dair baad dobara koshish karein',
         );
-        if (recentDuplicate) {
-          return ok({ ok: true });
-        }
       }
 
       // Recalculate remaining balance inside the locked transaction
