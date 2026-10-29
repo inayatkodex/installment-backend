@@ -435,10 +435,6 @@ export type EnumFeeStatusFieldUpdateOperationsInput = {
   set?: $Enums.FeeStatus
 }
 
-export type NullableDateTimeFieldUpdateOperationsInput = {
-  set?: Date | string | null
-}
-
 export type FeeRecordCreateWithoutShopInput = {
   id?: string
   month: string

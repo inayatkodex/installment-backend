@@ -96,6 +96,20 @@ export class ShopController {
     return this.shop.listCustomers(shopId, q);
   }
 
+  @Get('customers/pending-deletion')
+  @ApiOperation({
+    summary: 'Customers awaiting deletion with recovery available',
+  })
+  pendingDeletion(@ShopId() shopId: string) {
+    return this.shop.listPendingDeletion(shopId);
+  }
+
+  @Post('customers/:id/undo-delete')
+  @ApiOperation({ summary: '24 ghantay ke andar customer deletion wapas lena' })
+  undoDelete(@ShopId() shopId: string, @Param('id') id: string) {
+    return this.shop.undoDeleteCustomer(shopId, id);
+  }
+
   @Post('customers')
   @ApiOperation({ summary: 'Naya customer banana' })
   create(@ShopId() shopId: string, @Body() dto: CreateCustomerDto) {
@@ -110,7 +124,9 @@ export class ShopController {
 
   @Post('customers/:id/purchases')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Customer ki nayi khareedari aur qist ka plan banana' })
+  @ApiOperation({
+    summary: 'Customer ki nayi khareedari aur qist ka plan banana',
+  })
   addPurchase(
     @ShopId() shopId: string,
     @Param('id') id: string,
@@ -153,12 +169,7 @@ export class ShopController {
     @Param('purchaseId') purchaseId: string,
     @Body() dto: UpdateCustomerPurchasePaymentDto,
   ) {
-    return this.shop.updateCustomerPurchasePayment(
-      shopId,
-      id,
-      purchaseId,
-      dto,
-    );
+    return this.shop.updateCustomerPurchasePayment(shopId, id, purchaseId, dto);
   }
 
   @Put('customers/:id')
@@ -173,7 +184,8 @@ export class ShopController {
 
   @Delete('customers/:id')
   @ApiOperation({
-    summary: 'Customer delete karna (sirf jis ki qistein poori hon)',
+    summary:
+      'Completed customer ko 24 ghantay ke recovery window ke baad delete karna',
   })
   remove(
     @ShopId() shopId: string,

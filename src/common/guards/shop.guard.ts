@@ -41,9 +41,9 @@ export class ShopGuard implements CanActivate {
 
     const shop = await this.prisma.shop.findUnique({
       where: { id: payload.sub },
-      select: { status: true },
+      select: { status: true, pendingDeletionAt: true },
     });
-    if (!shop || shop.status !== 'active') {
+    if (!shop || shop.status !== 'active' || shop.pendingDeletionAt) {
       throw new UnauthorizedException(
         'Aap ka account active nahi hai. Admin se rabta karein.',
       );

@@ -319,7 +319,9 @@ export class ShopService {
     return this.prisma.$transaction(async (tx) => {
       const p = await tx.payment.findFirst({
         where: { id, customer: { shopId, deletedAt: null } },
-        include: { customer: { select: { id: true, name: true, shopId: true } } },
+        include: {
+          customer: { select: { id: true, name: true, shopId: true } },
+        },
       });
       if (!p) throw new NotFoundException('Payment nahi mili');
 
@@ -451,6 +453,64 @@ export class ShopService {
   /* ================= 8. CUSTOMER DETAIL ================= */
   async getCustomer(shopId: string, id: string) {
     return ok(await this.detailOf(await this.findFull(shopId, id)));
+  }
+
+  async listPendingDeletion(shopId: string) {
+    const customers = await this.prisma.customer.findMany({
+      where: {
+        shopId,
+        deletedAt: { not: null },
+        deletionRequestedAt: {
+          gt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+        },
+      },
+      select: {
+        id: true,
+        customerNo: true,
+        name: true,
+        deletionRequestedAt: true,
+      },
+      orderBy: { deletionRequestedAt: 'asc' },
+    });
+    return ok(
+      customers.map((customer) => ({
+        ...customer,
+        customerCode: customerCode(customer.customerNo),
+      })),
+    );
+  }
+
+  async undoDeleteCustomer(shopId: string, id: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const customer = await tx.customer.findFirst({
+        where: { id, shopId, deletedAt: { not: null } },
+        select: { id: true, deletionRequestedAt: true },
+      });
+      if (!customer?.deletionRequestedAt) {
+        throw new NotFoundException('Customer nahi mila');
+      }
+      if (
+        customer.deletionRequestedAt.getTime() <=
+        Date.now() - 24 * 60 * 60 * 1000
+      ) {
+        throw new BadRequestException(
+          'Customer ko wapas lane ka 24 ghantay ka waqt khatam ho gaya',
+        );
+      }
+
+      await tx.customer.update({
+        where: { id },
+        data: { deletedAt: null, deletionRequestedAt: null },
+      });
+      await this.audit.recordWithTx(tx, {
+        actorType: 'shop',
+        actorId: shopId,
+        action: 'CUSTOMER_DELETION_UNDONE',
+        entityType: 'Customer',
+        entityId: id,
+      });
+      return ok({ ok: true });
+    });
   }
 
   async addCustomerPurchase(
@@ -596,8 +656,7 @@ export class ShopService {
         );
       }
 
-      const fromInstallmentNo =
-        current.paid > 0 ? current.no + 1 : current.no;
+      const fromInstallmentNo = current.paid > 0 ? current.no + 1 : current.no;
       if (fromInstallmentNo > currentPlan.rows.length) {
         throw new BadRequestException(
           'Current qist mukammal karein, phir nayi raqam set karein',
@@ -721,8 +780,7 @@ export class ShopService {
           'Mukammal plan ki qist ki raqam tabdeel nahi ho sakti',
         );
       }
-      const fromInstallmentNo =
-        current.paid > 0 ? current.no + 1 : current.no;
+      const fromInstallmentNo = current.paid > 0 ? current.no + 1 : current.no;
       if (fromInstallmentNo > currentPlan.rows.length) {
         throw new BadRequestException(
           'Current qist mukammal karein, phir nayi raqam set karein',
@@ -800,7 +858,6 @@ export class ShopService {
         where: { id: customerId },
         data: { monthlyCollectionTarget: nextMonthlyTotal },
       });
-
     });
     return ok(await this.detailOf(await this.findFull(shopId, customerId)));
   }
@@ -905,9 +962,7 @@ export class ShopService {
               monthlyPayment: newMonthlyPayment,
             });
           }
-          rateChanges.sort(
-            (a, b) => a.fromInstallmentNo - b.fromInstallmentNo,
-          );
+          rateChanges.sort((a, b) => a.fromInstallmentNo - b.fromInstallmentNo);
           const plan = this.plan(customer);
           const proposedSchedule = this.financialOf(
             customer,
@@ -988,23 +1043,19 @@ export class ShopService {
         );
       }
 
-      // Soft delete: scoped strictly to shopId
-      await tx.customer.updateMany({
-        where: { id, shopId, deletedAt: null },
-        data: { deletedAt: new Date() },
+      const requestedAt = new Date();
+      await tx.customer.update({
+        where: { id: c.id },
+        data: { deletedAt: requestedAt, deletionRequestedAt: requestedAt },
       });
-
-      // Write audit log inside the transaction
       await this.audit.recordWithTx(tx, {
         actorType: 'shop',
         actorId: shopId,
-        action: 'CUSTOMER_DELETED',
+        action: 'CUSTOMER_DELETION_SCHEDULED',
         entityType: 'Customer',
         entityId: c.id,
         details: {
-          customerName: c.name,
-          customerNo: c.customerNo,
-          total: this.financialOf(c, todayIso()).total,
+          scheduledFor: new Date(requestedAt.getTime() + 24 * 60 * 60 * 1000),
         },
         ipAddress: meta?.ip,
         userAgent: meta?.userAgent,
@@ -1136,18 +1187,22 @@ export class ShopService {
   private financialOf(
     c: CustomerRecord,
     today: string,
-    baseRateChanges: { fromInstallmentNo: number; monthlyPayment: number }[] =
-      c.rateChanges,
+    baseRateChanges: {
+      fromInstallmentNo: number;
+      monthlyPayment: number;
+    }[] = c.rateChanges,
   ) {
-    const definitions: MultiPlanInput[] = [{
-      id: 'base',
-      items: c.items,
-      downPayment: c.downPayment,
-      initialMonthlyPayment: c.initialMonthlyPayment,
-      firstDueDate: c.firstDueDate,
-      rateChanges: baseRateChanges,
-      createdAt: c.createdAt,
-    }];
+    const definitions: MultiPlanInput[] = [
+      {
+        id: 'base',
+        items: c.items,
+        downPayment: c.downPayment,
+        initialMonthlyPayment: c.initialMonthlyPayment,
+        firstDueDate: c.firstDueDate,
+        rateChanges: baseRateChanges,
+        createdAt: c.createdAt,
+      },
+    ];
     const payments = c.payments
       .filter((payment) => !payment.reversedAt)
       .map((payment) => ({
@@ -1197,7 +1252,9 @@ export class ShopService {
         remaining: total - paid,
         downPayment: definition.downPayment,
         monthly:
-          index === 0 ? c.monthlyPayment : c.purchases[index - 1].monthlyPayment,
+          index === 0
+            ? c.monthlyPayment
+            : c.purchases[index - 1].monthlyPayment,
         firstDueDate: definition.firstDueDate,
         items: definition.items,
         rows,
@@ -1218,9 +1275,7 @@ export class ShopService {
     const financial = this.financialOf(c, today);
     const rows =
       financial.plans.length > 1
-        ? combineInstallmentSchedules(
-            financial.plans.map((plan) => plan.rows),
-          )
+        ? combineInstallmentSchedules(financial.plans.map((plan) => plan.rows))
         : financial.plans.flatMap((plan) => plan.rows);
     const total = financial.total;
     const paid = financial.paid;
@@ -1286,12 +1341,12 @@ export class ShopService {
     const lateRows = rows.filter((row) => row.daysLate > 0);
     const next =
       financial.plans.length === 1
-        ? rows.find(
+        ? (rows.find(
             (row) =>
               row.status !== 'paid' &&
               row.daysLate === 0 &&
               row.dueDate >= today,
-          ) ?? rows.find((row) => row.status !== 'paid')
+          ) ?? rows.find((row) => row.status !== 'paid'))
         : rows.find((row) => row.status !== 'paid');
     const listItem = this.toListItem(c, today);
 
@@ -1349,10 +1404,9 @@ export class ShopService {
       next: next
         ? {
             no: next.no,
-          planId: next.planId,
-            planLabel:
-            financial.plans.length > 1 ? 'Tamam plans' : undefined,
-          dueDate: next.dueDate,
+            planId: next.planId,
+            planLabel: financial.plans.length > 1 ? 'Tamam plans' : undefined,
+            dueDate: next.dueDate,
             amount: next.expected - next.paid,
             daysLate: next.daysLate,
           }
@@ -1377,9 +1431,7 @@ export class ShopService {
     for (const c of customers) {
       const plans = this.financialOf(c, today).plans;
       if (!plans[0]?.firstDueDate) continue;
-      const rows = combineInstallmentSchedules(
-        plans.map((plan) => plan.rows),
-      );
+      const rows = combineInstallmentSchedules(plans.map((plan) => plan.rows));
       for (const row of rows) {
         if (row.dueDate !== today) continue;
         out.push({
@@ -1417,8 +1469,9 @@ export class ShopService {
     for (const c of customers) {
       const plans = this.financialOf(c, today).plans;
       const rows = plans[0]?.firstDueDate
-        ? combineInstallmentSchedules(plans.map((plan) => plan.rows))
-        .filter((r) => r.daysLate > 0)
+        ? combineInstallmentSchedules(plans.map((plan) => plan.rows)).filter(
+            (r) => r.daysLate > 0,
+          )
         : [];
       if (!rows.length) continue;
 
@@ -1451,8 +1504,7 @@ export class ShopService {
         return plans[0]?.firstDueDate
           ? combineInstallmentSchedules(plans.map((plan) => plan.rows))
           : [];
-      },
-      )
+      })
       .filter((r) => r.dueDate.startsWith(month));
 
     const expected = rows.reduce((s, r) => s + r.expected, 0);

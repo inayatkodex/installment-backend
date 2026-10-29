@@ -5,6 +5,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
 import { AuditModule } from './common/audit/audit.module';
+import { DeletionCleanupService } from './common/deletion-cleanup.service';
 import { StorageModule } from './common/storage/storage.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ShopModule } from './shop/shop.module';
@@ -27,6 +28,7 @@ import { ShopModule } from './shop/shop.module';
     ShopModule,
   ],
   providers: [
+    DeletionCleanupService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

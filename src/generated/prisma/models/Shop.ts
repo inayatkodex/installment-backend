@@ -51,6 +51,8 @@ export type ShopMinAggregateOutputType = {
   passwordHash: string | null
   status: $Enums.ShopStatus | null
   statusNote: string | null
+  pendingDeletionAt: Date | null
+  deletionPreviousStatus: $Enums.ShopStatus | null
   monthlyFee: number | null
   customerSeq: number | null
   profilePic: string | null
@@ -75,6 +77,8 @@ export type ShopMaxAggregateOutputType = {
   passwordHash: string | null
   status: $Enums.ShopStatus | null
   statusNote: string | null
+  pendingDeletionAt: Date | null
+  deletionPreviousStatus: $Enums.ShopStatus | null
   monthlyFee: number | null
   customerSeq: number | null
   profilePic: string | null
@@ -99,6 +103,8 @@ export type ShopCountAggregateOutputType = {
   passwordHash: number
   status: number
   statusNote: number
+  pendingDeletionAt: number
+  deletionPreviousStatus: number
   monthlyFee: number
   customerSeq: number
   profilePic: number
@@ -137,6 +143,8 @@ export type ShopMinAggregateInputType = {
   passwordHash?: true
   status?: true
   statusNote?: true
+  pendingDeletionAt?: true
+  deletionPreviousStatus?: true
   monthlyFee?: true
   customerSeq?: true
   profilePic?: true
@@ -161,6 +169,8 @@ export type ShopMaxAggregateInputType = {
   passwordHash?: true
   status?: true
   statusNote?: true
+  pendingDeletionAt?: true
+  deletionPreviousStatus?: true
   monthlyFee?: true
   customerSeq?: true
   profilePic?: true
@@ -185,6 +195,8 @@ export type ShopCountAggregateInputType = {
   passwordHash?: true
   status?: true
   statusNote?: true
+  pendingDeletionAt?: true
+  deletionPreviousStatus?: true
   monthlyFee?: true
   customerSeq?: true
   profilePic?: true
@@ -296,6 +308,8 @@ export type ShopGroupByOutputType = {
   passwordHash: string
   status: $Enums.ShopStatus
   statusNote: string | null
+  pendingDeletionAt: Date | null
+  deletionPreviousStatus: $Enums.ShopStatus | null
   monthlyFee: number
   customerSeq: number
   profilePic: string | null
@@ -343,6 +357,8 @@ export type ShopWhereInput = {
   passwordHash?: Prisma.StringFilter<"Shop"> | string
   status?: Prisma.EnumShopStatusFilter<"Shop"> | $Enums.ShopStatus
   statusNote?: Prisma.StringNullableFilter<"Shop"> | string | null
+  pendingDeletionAt?: Prisma.DateTimeNullableFilter<"Shop"> | Date | string | null
+  deletionPreviousStatus?: Prisma.EnumShopStatusNullableFilter<"Shop"> | $Enums.ShopStatus | null
   monthlyFee?: Prisma.IntFilter<"Shop"> | number
   customerSeq?: Prisma.IntFilter<"Shop"> | number
   profilePic?: Prisma.StringNullableFilter<"Shop"> | string | null
@@ -369,6 +385,8 @@ export type ShopOrderByWithRelationInput = {
   passwordHash?: Prisma.SortOrder
   status?: Prisma.SortOrder
   statusNote?: Prisma.SortOrderInput | Prisma.SortOrder
+  pendingDeletionAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  deletionPreviousStatus?: Prisma.SortOrderInput | Prisma.SortOrder
   monthlyFee?: Prisma.SortOrder
   customerSeq?: Prisma.SortOrder
   profilePic?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -398,6 +416,8 @@ export type ShopWhereUniqueInput = Prisma.AtLeast<{
   passwordHash?: Prisma.StringFilter<"Shop"> | string
   status?: Prisma.EnumShopStatusFilter<"Shop"> | $Enums.ShopStatus
   statusNote?: Prisma.StringNullableFilter<"Shop"> | string | null
+  pendingDeletionAt?: Prisma.DateTimeNullableFilter<"Shop"> | Date | string | null
+  deletionPreviousStatus?: Prisma.EnumShopStatusNullableFilter<"Shop"> | $Enums.ShopStatus | null
   monthlyFee?: Prisma.IntFilter<"Shop"> | number
   customerSeq?: Prisma.IntFilter<"Shop"> | number
   profilePic?: Prisma.StringNullableFilter<"Shop"> | string | null
@@ -424,6 +444,8 @@ export type ShopOrderByWithAggregationInput = {
   passwordHash?: Prisma.SortOrder
   status?: Prisma.SortOrder
   statusNote?: Prisma.SortOrderInput | Prisma.SortOrder
+  pendingDeletionAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  deletionPreviousStatus?: Prisma.SortOrderInput | Prisma.SortOrder
   monthlyFee?: Prisma.SortOrder
   customerSeq?: Prisma.SortOrder
   profilePic?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -456,6 +478,8 @@ export type ShopScalarWhereWithAggregatesInput = {
   passwordHash?: Prisma.StringWithAggregatesFilter<"Shop"> | string
   status?: Prisma.EnumShopStatusWithAggregatesFilter<"Shop"> | $Enums.ShopStatus
   statusNote?: Prisma.StringNullableWithAggregatesFilter<"Shop"> | string | null
+  pendingDeletionAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Shop"> | Date | string | null
+  deletionPreviousStatus?: Prisma.EnumShopStatusNullableWithAggregatesFilter<"Shop"> | $Enums.ShopStatus | null
   monthlyFee?: Prisma.IntWithAggregatesFilter<"Shop"> | number
   customerSeq?: Prisma.IntWithAggregatesFilter<"Shop"> | number
   profilePic?: Prisma.StringNullableWithAggregatesFilter<"Shop"> | string | null
@@ -480,6 +504,8 @@ export type ShopCreateInput = {
   passwordHash: string
   status?: $Enums.ShopStatus
   statusNote?: string | null
+  pendingDeletionAt?: Date | string | null
+  deletionPreviousStatus?: $Enums.ShopStatus | null
   monthlyFee?: number
   customerSeq?: number
   profilePic?: string | null
@@ -506,6 +532,8 @@ export type ShopUncheckedCreateInput = {
   passwordHash: string
   status?: $Enums.ShopStatus
   statusNote?: string | null
+  pendingDeletionAt?: Date | string | null
+  deletionPreviousStatus?: $Enums.ShopStatus | null
   monthlyFee?: number
   customerSeq?: number
   profilePic?: string | null
@@ -531,6 +559,8 @@ export type ShopUpdateInput = {
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumShopStatusFieldUpdateOperationsInput | $Enums.ShopStatus
   statusNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingDeletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionPreviousStatus?: Prisma.NullableEnumShopStatusFieldUpdateOperationsInput | $Enums.ShopStatus | null
   monthlyFee?: Prisma.IntFieldUpdateOperationsInput | number
   customerSeq?: Prisma.IntFieldUpdateOperationsInput | number
   profilePic?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -557,6 +587,8 @@ export type ShopUncheckedUpdateInput = {
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumShopStatusFieldUpdateOperationsInput | $Enums.ShopStatus
   statusNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingDeletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionPreviousStatus?: Prisma.NullableEnumShopStatusFieldUpdateOperationsInput | $Enums.ShopStatus | null
   monthlyFee?: Prisma.IntFieldUpdateOperationsInput | number
   customerSeq?: Prisma.IntFieldUpdateOperationsInput | number
   profilePic?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -583,6 +615,8 @@ export type ShopCreateManyInput = {
   passwordHash: string
   status?: $Enums.ShopStatus
   statusNote?: string | null
+  pendingDeletionAt?: Date | string | null
+  deletionPreviousStatus?: $Enums.ShopStatus | null
   monthlyFee?: number
   customerSeq?: number
   profilePic?: string | null
@@ -606,6 +640,8 @@ export type ShopUpdateManyMutationInput = {
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumShopStatusFieldUpdateOperationsInput | $Enums.ShopStatus
   statusNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingDeletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionPreviousStatus?: Prisma.NullableEnumShopStatusFieldUpdateOperationsInput | $Enums.ShopStatus | null
   monthlyFee?: Prisma.IntFieldUpdateOperationsInput | number
   customerSeq?: Prisma.IntFieldUpdateOperationsInput | number
   profilePic?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -630,6 +666,8 @@ export type ShopUncheckedUpdateManyInput = {
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumShopStatusFieldUpdateOperationsInput | $Enums.ShopStatus
   statusNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingDeletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionPreviousStatus?: Prisma.NullableEnumShopStatusFieldUpdateOperationsInput | $Enums.ShopStatus | null
   monthlyFee?: Prisma.IntFieldUpdateOperationsInput | number
   customerSeq?: Prisma.IntFieldUpdateOperationsInput | number
   profilePic?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -654,6 +692,8 @@ export type ShopCountOrderByAggregateInput = {
   passwordHash?: Prisma.SortOrder
   status?: Prisma.SortOrder
   statusNote?: Prisma.SortOrder
+  pendingDeletionAt?: Prisma.SortOrder
+  deletionPreviousStatus?: Prisma.SortOrder
   monthlyFee?: Prisma.SortOrder
   customerSeq?: Prisma.SortOrder
   profilePic?: Prisma.SortOrder
@@ -684,6 +724,8 @@ export type ShopMaxOrderByAggregateInput = {
   passwordHash?: Prisma.SortOrder
   status?: Prisma.SortOrder
   statusNote?: Prisma.SortOrder
+  pendingDeletionAt?: Prisma.SortOrder
+  deletionPreviousStatus?: Prisma.SortOrder
   monthlyFee?: Prisma.SortOrder
   customerSeq?: Prisma.SortOrder
   profilePic?: Prisma.SortOrder
@@ -708,6 +750,8 @@ export type ShopMinOrderByAggregateInput = {
   passwordHash?: Prisma.SortOrder
   status?: Prisma.SortOrder
   statusNote?: Prisma.SortOrder
+  pendingDeletionAt?: Prisma.SortOrder
+  deletionPreviousStatus?: Prisma.SortOrder
   monthlyFee?: Prisma.SortOrder
   customerSeq?: Prisma.SortOrder
   profilePic?: Prisma.SortOrder
@@ -740,6 +784,14 @@ export type NullableStringFieldUpdateOperationsInput = {
 
 export type EnumShopStatusFieldUpdateOperationsInput = {
   set?: $Enums.ShopStatus
+}
+
+export type NullableDateTimeFieldUpdateOperationsInput = {
+  set?: Date | string | null
+}
+
+export type NullableEnumShopStatusFieldUpdateOperationsInput = {
+  set?: $Enums.ShopStatus | null
 }
 
 export type IntFieldUpdateOperationsInput = {
@@ -795,6 +847,8 @@ export type ShopCreateWithoutFeeRecordsInput = {
   passwordHash: string
   status?: $Enums.ShopStatus
   statusNote?: string | null
+  pendingDeletionAt?: Date | string | null
+  deletionPreviousStatus?: $Enums.ShopStatus | null
   monthlyFee?: number
   customerSeq?: number
   profilePic?: string | null
@@ -820,6 +874,8 @@ export type ShopUncheckedCreateWithoutFeeRecordsInput = {
   passwordHash: string
   status?: $Enums.ShopStatus
   statusNote?: string | null
+  pendingDeletionAt?: Date | string | null
+  deletionPreviousStatus?: $Enums.ShopStatus | null
   monthlyFee?: number
   customerSeq?: number
   profilePic?: string | null
@@ -860,6 +916,8 @@ export type ShopUpdateWithoutFeeRecordsInput = {
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumShopStatusFieldUpdateOperationsInput | $Enums.ShopStatus
   statusNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingDeletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionPreviousStatus?: Prisma.NullableEnumShopStatusFieldUpdateOperationsInput | $Enums.ShopStatus | null
   monthlyFee?: Prisma.IntFieldUpdateOperationsInput | number
   customerSeq?: Prisma.IntFieldUpdateOperationsInput | number
   profilePic?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -885,6 +943,8 @@ export type ShopUncheckedUpdateWithoutFeeRecordsInput = {
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumShopStatusFieldUpdateOperationsInput | $Enums.ShopStatus
   statusNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingDeletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionPreviousStatus?: Prisma.NullableEnumShopStatusFieldUpdateOperationsInput | $Enums.ShopStatus | null
   monthlyFee?: Prisma.IntFieldUpdateOperationsInput | number
   customerSeq?: Prisma.IntFieldUpdateOperationsInput | number
   profilePic?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -910,6 +970,8 @@ export type ShopCreateWithoutCustomersInput = {
   passwordHash: string
   status?: $Enums.ShopStatus
   statusNote?: string | null
+  pendingDeletionAt?: Date | string | null
+  deletionPreviousStatus?: $Enums.ShopStatus | null
   monthlyFee?: number
   customerSeq?: number
   profilePic?: string | null
@@ -935,6 +997,8 @@ export type ShopUncheckedCreateWithoutCustomersInput = {
   passwordHash: string
   status?: $Enums.ShopStatus
   statusNote?: string | null
+  pendingDeletionAt?: Date | string | null
+  deletionPreviousStatus?: $Enums.ShopStatus | null
   monthlyFee?: number
   customerSeq?: number
   profilePic?: string | null
@@ -975,6 +1039,8 @@ export type ShopUpdateWithoutCustomersInput = {
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumShopStatusFieldUpdateOperationsInput | $Enums.ShopStatus
   statusNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingDeletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionPreviousStatus?: Prisma.NullableEnumShopStatusFieldUpdateOperationsInput | $Enums.ShopStatus | null
   monthlyFee?: Prisma.IntFieldUpdateOperationsInput | number
   customerSeq?: Prisma.IntFieldUpdateOperationsInput | number
   profilePic?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1000,6 +1066,8 @@ export type ShopUncheckedUpdateWithoutCustomersInput = {
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumShopStatusFieldUpdateOperationsInput | $Enums.ShopStatus
   statusNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingDeletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionPreviousStatus?: Prisma.NullableEnumShopStatusFieldUpdateOperationsInput | $Enums.ShopStatus | null
   monthlyFee?: Prisma.IntFieldUpdateOperationsInput | number
   customerSeq?: Prisma.IntFieldUpdateOperationsInput | number
   profilePic?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1065,6 +1133,8 @@ export type ShopSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   passwordHash?: boolean
   status?: boolean
   statusNote?: boolean
+  pendingDeletionAt?: boolean
+  deletionPreviousStatus?: boolean
   monthlyFee?: boolean
   customerSeq?: boolean
   profilePic?: boolean
@@ -1092,6 +1162,8 @@ export type ShopSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   passwordHash?: boolean
   status?: boolean
   statusNote?: boolean
+  pendingDeletionAt?: boolean
+  deletionPreviousStatus?: boolean
   monthlyFee?: boolean
   customerSeq?: boolean
   profilePic?: boolean
@@ -1116,6 +1188,8 @@ export type ShopSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   passwordHash?: boolean
   status?: boolean
   statusNote?: boolean
+  pendingDeletionAt?: boolean
+  deletionPreviousStatus?: boolean
   monthlyFee?: boolean
   customerSeq?: boolean
   profilePic?: boolean
@@ -1140,6 +1214,8 @@ export type ShopSelectScalar = {
   passwordHash?: boolean
   status?: boolean
   statusNote?: boolean
+  pendingDeletionAt?: boolean
+  deletionPreviousStatus?: boolean
   monthlyFee?: boolean
   customerSeq?: boolean
   profilePic?: boolean
@@ -1151,7 +1227,7 @@ export type ShopSelectScalar = {
   updatedAt?: boolean
 }
 
-export type ShopOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "shopNo" | "shopName" | "ownerName" | "mobile" | "email" | "cnic" | "city" | "address" | "passwordHash" | "status" | "statusNote" | "monthlyFee" | "customerSeq" | "profilePic" | "docPhoto" | "docCnicFront" | "docCnicBack" | "docShopDocument" | "createdAt" | "updatedAt", ExtArgs["result"]["shop"]>
+export type ShopOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "shopNo" | "shopName" | "ownerName" | "mobile" | "email" | "cnic" | "city" | "address" | "passwordHash" | "status" | "statusNote" | "pendingDeletionAt" | "deletionPreviousStatus" | "monthlyFee" | "customerSeq" | "profilePic" | "docPhoto" | "docCnicFront" | "docCnicBack" | "docShopDocument" | "createdAt" | "updatedAt", ExtArgs["result"]["shop"]>
 export type ShopInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   feeRecords?: boolean | Prisma.Shop$feeRecordsArgs<ExtArgs>
   customers?: boolean | Prisma.Shop$customersArgs<ExtArgs>
@@ -1179,6 +1255,8 @@ export type $ShopPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     passwordHash: string
     status: $Enums.ShopStatus
     statusNote: string | null
+    pendingDeletionAt: Date | null
+    deletionPreviousStatus: $Enums.ShopStatus | null
     monthlyFee: number
     customerSeq: number
     profilePic: string | null
@@ -1625,6 +1703,8 @@ export interface ShopFieldRefs {
   readonly passwordHash: Prisma.FieldRef<"Shop", 'String'>
   readonly status: Prisma.FieldRef<"Shop", 'ShopStatus'>
   readonly statusNote: Prisma.FieldRef<"Shop", 'String'>
+  readonly pendingDeletionAt: Prisma.FieldRef<"Shop", 'DateTime'>
+  readonly deletionPreviousStatus: Prisma.FieldRef<"Shop", 'ShopStatus'>
   readonly monthlyFee: Prisma.FieldRef<"Shop", 'Int'>
   readonly customerSeq: Prisma.FieldRef<"Shop", 'Int'>
   readonly profilePic: Prisma.FieldRef<"Shop", 'String'>

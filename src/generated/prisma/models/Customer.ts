@@ -61,6 +61,7 @@ export type CustomerMinAggregateOutputType = {
   monthlyCollectionTarget: number | null
   firstDueDate: string | null
   deletedAt: Date | null
+  deletionRequestedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -84,6 +85,7 @@ export type CustomerMaxAggregateOutputType = {
   monthlyCollectionTarget: number | null
   firstDueDate: string | null
   deletedAt: Date | null
+  deletionRequestedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -107,6 +109,7 @@ export type CustomerCountAggregateOutputType = {
   monthlyCollectionTarget: number
   firstDueDate: number
   deletedAt: number
+  deletionRequestedAt: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -148,6 +151,7 @@ export type CustomerMinAggregateInputType = {
   monthlyCollectionTarget?: true
   firstDueDate?: true
   deletedAt?: true
+  deletionRequestedAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -171,6 +175,7 @@ export type CustomerMaxAggregateInputType = {
   monthlyCollectionTarget?: true
   firstDueDate?: true
   deletedAt?: true
+  deletionRequestedAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -194,6 +199,7 @@ export type CustomerCountAggregateInputType = {
   monthlyCollectionTarget?: true
   firstDueDate?: true
   deletedAt?: true
+  deletionRequestedAt?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -304,6 +310,7 @@ export type CustomerGroupByOutputType = {
   monthlyCollectionTarget: number | null
   firstDueDate: string
   deletedAt: Date | null
+  deletionRequestedAt: Date | null
   createdAt: Date
   updatedAt: Date
   _count: CustomerCountAggregateOutputType | null
@@ -350,6 +357,7 @@ export type CustomerWhereInput = {
   monthlyCollectionTarget?: Prisma.IntNullableFilter<"Customer"> | number | null
   firstDueDate?: Prisma.StringFilter<"Customer"> | string
   deletedAt?: Prisma.DateTimeNullableFilter<"Customer"> | Date | string | null
+  deletionRequestedAt?: Prisma.DateTimeNullableFilter<"Customer"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Customer"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Customer"> | Date | string
   shop?: Prisma.XOR<Prisma.ShopScalarRelationFilter, Prisma.ShopWhereInput>
@@ -378,6 +386,7 @@ export type CustomerOrderByWithRelationInput = {
   monthlyCollectionTarget?: Prisma.SortOrderInput | Prisma.SortOrder
   firstDueDate?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  deletionRequestedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   shop?: Prisma.ShopOrderByWithRelationInput
@@ -410,6 +419,7 @@ export type CustomerWhereUniqueInput = Prisma.AtLeast<{
   monthlyCollectionTarget?: Prisma.IntNullableFilter<"Customer"> | number | null
   firstDueDate?: Prisma.StringFilter<"Customer"> | string
   deletedAt?: Prisma.DateTimeNullableFilter<"Customer"> | Date | string | null
+  deletionRequestedAt?: Prisma.DateTimeNullableFilter<"Customer"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Customer"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Customer"> | Date | string
   shop?: Prisma.XOR<Prisma.ShopScalarRelationFilter, Prisma.ShopWhereInput>
@@ -438,6 +448,7 @@ export type CustomerOrderByWithAggregationInput = {
   monthlyCollectionTarget?: Prisma.SortOrderInput | Prisma.SortOrder
   firstDueDate?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  deletionRequestedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.CustomerCountOrderByAggregateInput
@@ -469,6 +480,7 @@ export type CustomerScalarWhereWithAggregatesInput = {
   monthlyCollectionTarget?: Prisma.IntNullableWithAggregatesFilter<"Customer"> | number | null
   firstDueDate?: Prisma.StringWithAggregatesFilter<"Customer"> | string
   deletedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Customer"> | Date | string | null
+  deletionRequestedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Customer"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Customer"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Customer"> | Date | string
 }
@@ -491,6 +503,7 @@ export type CustomerCreateInput = {
   monthlyCollectionTarget?: number | null
   firstDueDate: string
   deletedAt?: Date | string | null
+  deletionRequestedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   shop: Prisma.ShopCreateNestedOneWithoutCustomersInput
@@ -519,6 +532,7 @@ export type CustomerUncheckedCreateInput = {
   monthlyCollectionTarget?: number | null
   firstDueDate: string
   deletedAt?: Date | string | null
+  deletionRequestedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   items?: Prisma.CustomerItemUncheckedCreateNestedManyWithoutCustomerInput
@@ -545,6 +559,7 @@ export type CustomerUpdateInput = {
   monthlyCollectionTarget?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   firstDueDate?: Prisma.StringFieldUpdateOperationsInput | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   shop?: Prisma.ShopUpdateOneRequiredWithoutCustomersNestedInput
@@ -573,6 +588,7 @@ export type CustomerUncheckedUpdateInput = {
   monthlyCollectionTarget?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   firstDueDate?: Prisma.StringFieldUpdateOperationsInput | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   items?: Prisma.CustomerItemUncheckedUpdateManyWithoutCustomerNestedInput
@@ -600,6 +616,7 @@ export type CustomerCreateManyInput = {
   monthlyCollectionTarget?: number | null
   firstDueDate: string
   deletedAt?: Date | string | null
+  deletionRequestedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -622,6 +639,7 @@ export type CustomerUpdateManyMutationInput = {
   monthlyCollectionTarget?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   firstDueDate?: Prisma.StringFieldUpdateOperationsInput | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -645,6 +663,7 @@ export type CustomerUncheckedUpdateManyInput = {
   monthlyCollectionTarget?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   firstDueDate?: Prisma.StringFieldUpdateOperationsInput | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -683,6 +702,7 @@ export type CustomerCountOrderByAggregateInput = {
   monthlyCollectionTarget?: Prisma.SortOrder
   firstDueDate?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
+  deletionRequestedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -714,6 +734,7 @@ export type CustomerMaxOrderByAggregateInput = {
   monthlyCollectionTarget?: Prisma.SortOrder
   firstDueDate?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
+  deletionRequestedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -737,6 +758,7 @@ export type CustomerMinOrderByAggregateInput = {
   monthlyCollectionTarget?: Prisma.SortOrder
   firstDueDate?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
+  deletionRequestedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -878,6 +900,7 @@ export type CustomerCreateWithoutShopInput = {
   monthlyCollectionTarget?: number | null
   firstDueDate: string
   deletedAt?: Date | string | null
+  deletionRequestedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   items?: Prisma.CustomerItemCreateNestedManyWithoutCustomerInput
@@ -904,6 +927,7 @@ export type CustomerUncheckedCreateWithoutShopInput = {
   monthlyCollectionTarget?: number | null
   firstDueDate: string
   deletedAt?: Date | string | null
+  deletionRequestedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   items?: Prisma.CustomerItemUncheckedCreateNestedManyWithoutCustomerInput
@@ -960,6 +984,7 @@ export type CustomerScalarWhereInput = {
   monthlyCollectionTarget?: Prisma.IntNullableFilter<"Customer"> | number | null
   firstDueDate?: Prisma.StringFilter<"Customer"> | string
   deletedAt?: Prisma.DateTimeNullableFilter<"Customer"> | Date | string | null
+  deletionRequestedAt?: Prisma.DateTimeNullableFilter<"Customer"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Customer"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Customer"> | Date | string
 }
@@ -982,6 +1007,7 @@ export type CustomerCreateWithoutRateChangesInput = {
   monthlyCollectionTarget?: number | null
   firstDueDate: string
   deletedAt?: Date | string | null
+  deletionRequestedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   shop: Prisma.ShopCreateNestedOneWithoutCustomersInput
@@ -1009,6 +1035,7 @@ export type CustomerUncheckedCreateWithoutRateChangesInput = {
   monthlyCollectionTarget?: number | null
   firstDueDate: string
   deletedAt?: Date | string | null
+  deletionRequestedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   items?: Prisma.CustomerItemUncheckedCreateNestedManyWithoutCustomerInput
@@ -1050,6 +1077,7 @@ export type CustomerUpdateWithoutRateChangesInput = {
   monthlyCollectionTarget?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   firstDueDate?: Prisma.StringFieldUpdateOperationsInput | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   shop?: Prisma.ShopUpdateOneRequiredWithoutCustomersNestedInput
@@ -1077,6 +1105,7 @@ export type CustomerUncheckedUpdateWithoutRateChangesInput = {
   monthlyCollectionTarget?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   firstDueDate?: Prisma.StringFieldUpdateOperationsInput | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   items?: Prisma.CustomerItemUncheckedUpdateManyWithoutCustomerNestedInput
@@ -1102,6 +1131,7 @@ export type CustomerCreateWithoutPurchasesInput = {
   monthlyCollectionTarget?: number | null
   firstDueDate: string
   deletedAt?: Date | string | null
+  deletionRequestedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   shop: Prisma.ShopCreateNestedOneWithoutCustomersInput
@@ -1129,6 +1159,7 @@ export type CustomerUncheckedCreateWithoutPurchasesInput = {
   monthlyCollectionTarget?: number | null
   firstDueDate: string
   deletedAt?: Date | string | null
+  deletionRequestedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   items?: Prisma.CustomerItemUncheckedCreateNestedManyWithoutCustomerInput
@@ -1170,6 +1201,7 @@ export type CustomerUpdateWithoutPurchasesInput = {
   monthlyCollectionTarget?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   firstDueDate?: Prisma.StringFieldUpdateOperationsInput | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   shop?: Prisma.ShopUpdateOneRequiredWithoutCustomersNestedInput
@@ -1197,6 +1229,7 @@ export type CustomerUncheckedUpdateWithoutPurchasesInput = {
   monthlyCollectionTarget?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   firstDueDate?: Prisma.StringFieldUpdateOperationsInput | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   items?: Prisma.CustomerItemUncheckedUpdateManyWithoutCustomerNestedInput
@@ -1222,6 +1255,7 @@ export type CustomerCreateWithoutItemsInput = {
   monthlyCollectionTarget?: number | null
   firstDueDate: string
   deletedAt?: Date | string | null
+  deletionRequestedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   shop: Prisma.ShopCreateNestedOneWithoutCustomersInput
@@ -1249,6 +1283,7 @@ export type CustomerUncheckedCreateWithoutItemsInput = {
   monthlyCollectionTarget?: number | null
   firstDueDate: string
   deletedAt?: Date | string | null
+  deletionRequestedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   payments?: Prisma.PaymentUncheckedCreateNestedManyWithoutCustomerInput
@@ -1290,6 +1325,7 @@ export type CustomerUpdateWithoutItemsInput = {
   monthlyCollectionTarget?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   firstDueDate?: Prisma.StringFieldUpdateOperationsInput | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   shop?: Prisma.ShopUpdateOneRequiredWithoutCustomersNestedInput
@@ -1317,6 +1353,7 @@ export type CustomerUncheckedUpdateWithoutItemsInput = {
   monthlyCollectionTarget?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   firstDueDate?: Prisma.StringFieldUpdateOperationsInput | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   payments?: Prisma.PaymentUncheckedUpdateManyWithoutCustomerNestedInput
@@ -1342,6 +1379,7 @@ export type CustomerCreateWithoutPaymentsInput = {
   monthlyCollectionTarget?: number | null
   firstDueDate: string
   deletedAt?: Date | string | null
+  deletionRequestedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   shop: Prisma.ShopCreateNestedOneWithoutCustomersInput
@@ -1369,6 +1407,7 @@ export type CustomerUncheckedCreateWithoutPaymentsInput = {
   monthlyCollectionTarget?: number | null
   firstDueDate: string
   deletedAt?: Date | string | null
+  deletionRequestedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   items?: Prisma.CustomerItemUncheckedCreateNestedManyWithoutCustomerInput
@@ -1410,6 +1449,7 @@ export type CustomerUpdateWithoutPaymentsInput = {
   monthlyCollectionTarget?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   firstDueDate?: Prisma.StringFieldUpdateOperationsInput | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   shop?: Prisma.ShopUpdateOneRequiredWithoutCustomersNestedInput
@@ -1437,6 +1477,7 @@ export type CustomerUncheckedUpdateWithoutPaymentsInput = {
   monthlyCollectionTarget?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   firstDueDate?: Prisma.StringFieldUpdateOperationsInput | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   items?: Prisma.CustomerItemUncheckedUpdateManyWithoutCustomerNestedInput
@@ -1462,6 +1503,7 @@ export type CustomerCreateManyShopInput = {
   monthlyCollectionTarget?: number | null
   firstDueDate: string
   deletedAt?: Date | string | null
+  deletionRequestedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1484,6 +1526,7 @@ export type CustomerUpdateWithoutShopInput = {
   monthlyCollectionTarget?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   firstDueDate?: Prisma.StringFieldUpdateOperationsInput | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   items?: Prisma.CustomerItemUpdateManyWithoutCustomerNestedInput
@@ -1510,6 +1553,7 @@ export type CustomerUncheckedUpdateWithoutShopInput = {
   monthlyCollectionTarget?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   firstDueDate?: Prisma.StringFieldUpdateOperationsInput | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   items?: Prisma.CustomerItemUncheckedUpdateManyWithoutCustomerNestedInput
@@ -1536,6 +1580,7 @@ export type CustomerUncheckedUpdateManyWithoutShopInput = {
   monthlyCollectionTarget?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   firstDueDate?: Prisma.StringFieldUpdateOperationsInput | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1617,6 +1662,7 @@ export type CustomerSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   monthlyCollectionTarget?: boolean
   firstDueDate?: boolean
   deletedAt?: boolean
+  deletionRequestedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   shop?: boolean | Prisma.ShopDefaultArgs<ExtArgs>
@@ -1646,6 +1692,7 @@ export type CustomerSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   monthlyCollectionTarget?: boolean
   firstDueDate?: boolean
   deletedAt?: boolean
+  deletionRequestedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   shop?: boolean | Prisma.ShopDefaultArgs<ExtArgs>
@@ -1670,6 +1717,7 @@ export type CustomerSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   monthlyCollectionTarget?: boolean
   firstDueDate?: boolean
   deletedAt?: boolean
+  deletionRequestedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   shop?: boolean | Prisma.ShopDefaultArgs<ExtArgs>
@@ -1694,11 +1742,12 @@ export type CustomerSelectScalar = {
   monthlyCollectionTarget?: boolean
   firstDueDate?: boolean
   deletedAt?: boolean
+  deletionRequestedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type CustomerOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "shopId" | "customerNo" | "name" | "fatherName" | "phone" | "cnic" | "address" | "photo" | "docCnicFront" | "docCnicBack" | "docOther" | "downPayment" | "initialMonthlyPayment" | "monthlyPayment" | "monthlyCollectionTarget" | "firstDueDate" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["customer"]>
+export type CustomerOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "shopId" | "customerNo" | "name" | "fatherName" | "phone" | "cnic" | "address" | "photo" | "docCnicFront" | "docCnicBack" | "docOther" | "downPayment" | "initialMonthlyPayment" | "monthlyPayment" | "monthlyCollectionTarget" | "firstDueDate" | "deletedAt" | "deletionRequestedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["customer"]>
 export type CustomerInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   shop?: boolean | Prisma.ShopDefaultArgs<ExtArgs>
   items?: boolean | Prisma.Customer$itemsArgs<ExtArgs>
@@ -1742,6 +1791,7 @@ export type $CustomerPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     monthlyCollectionTarget: number | null
     firstDueDate: string
     deletedAt: Date | null
+    deletionRequestedAt: Date | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["customer"]>
@@ -2190,6 +2240,7 @@ export interface CustomerFieldRefs {
   readonly monthlyCollectionTarget: Prisma.FieldRef<"Customer", 'Int'>
   readonly firstDueDate: Prisma.FieldRef<"Customer", 'String'>
   readonly deletedAt: Prisma.FieldRef<"Customer", 'DateTime'>
+  readonly deletionRequestedAt: Prisma.FieldRef<"Customer", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Customer", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Customer", 'DateTime'>
 }

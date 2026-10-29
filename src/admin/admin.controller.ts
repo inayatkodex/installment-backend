@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
+  Post,
   Query,
   Req,
   UseGuards,
@@ -36,10 +38,41 @@ export class AdminController {
     return this.admin.listShops(query);
   }
 
+  @Get('shops/pending-deletion')
+  @ApiOperation({
+    summary: 'List shops in the 24-hour deletion recovery window',
+  })
+  pendingDeletion() {
+    return this.admin.listPendingDeletion();
+  }
+
+  @Post('shops/:id/undo-delete')
+  @ApiOperation({
+    summary: 'Restore a shop before its 24-hour deletion deadline',
+  })
+  undoDelete(@Param('id') id: string, @AdminId() adminId: string) {
+    return this.admin.undoDeleteShop(id, adminId);
+  }
+
   @Get('shops/:id')
   @ApiOperation({ summary: 'Single shop detail and fee history' })
   getShop(@Param('id') id: string) {
     return this.admin.getShop(id);
+  }
+
+  @Delete('shops/:id')
+  @ApiOperation({
+    summary: 'Schedule shop deletion after a 24-hour recovery window',
+  })
+  deleteShop(
+    @Param('id') id: string,
+    @AdminId() adminId: string,
+    @Req() req: Request,
+  ) {
+    return this.admin.deleteShop(id, adminId, {
+      ip: req?.ip,
+      userAgent: req?.headers['user-agent'],
+    });
   }
 
   @Patch('shops/:id/status')

@@ -93,6 +93,8 @@ export const ShopScalarFieldEnum = {
   passwordHash: 'passwordHash',
   status: 'status',
   statusNote: 'statusNote',
+  pendingDeletionAt: 'pendingDeletionAt',
+  deletionPreviousStatus: 'deletionPreviousStatus',
   monthlyFee: 'monthlyFee',
   customerSeq: 'customerSeq',
   profilePic: 'profilePic',
@@ -151,6 +153,7 @@ export const CustomerScalarFieldEnum = {
   monthlyCollectionTarget: 'monthlyCollectionTarget',
   firstDueDate: 'firstDueDate',
   deletedAt: 'deletedAt',
+  deletionRequestedAt: 'deletionRequestedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

@@ -21,20 +21,22 @@ enum FeeStatus {
 }
 
 model Shop {
-  id           String     @id @default(uuid())
-  shopNo       Int        @unique @default(autoincrement())
-  shopName     String
-  ownerName    String
-  mobile       String     @unique
-  email        String?
-  cnic         String
-  city         String
-  address      String
-  passwordHash String
-  status       ShopStatus @default(pending)
-  statusNote   String?
-  monthlyFee   Int        @default(2500)
-  customerSeq  Int        @default(0)
+  id                     String      @id @default(uuid())
+  shopNo                 Int         @unique @default(autoincrement())
+  shopName               String
+  ownerName              String
+  mobile                 String      @unique
+  email                  String?
+  cnic                   String
+  city                   String
+  address                String
+  passwordHash           String
+  status                 ShopStatus  @default(pending)
+  statusNote             String?
+  pendingDeletionAt      DateTime?
+  deletionPreviousStatus ShopStatus?
+  monthlyFee             Int         @default(2500)
+  customerSeq            Int         @default(0)
 
   profilePic      String? @db.Text
   docPhoto        String? @db.Text
@@ -50,6 +52,7 @@ model Shop {
 
   @@index([status])
   @@index([createdAt])
+  @@index([pendingDeletionAt])
   @@map("shops")
 }
 
@@ -99,6 +102,7 @@ model Customer {
   monthlyCollectionTarget Int?
   firstDueDate            String // "YYYY-MM-DD"
   deletedAt               DateTime?
+  deletionRequestedAt     DateTime?
 
   items       CustomerItem[]
   payments    Payment[]
@@ -111,6 +115,7 @@ model Customer {
   @@unique([shopId, customerNo])
   @@index([shopId, deletedAt])
   @@index([shopId, phone])
+  @@index([deletionRequestedAt])
   @@map("customers")
 }
 
@@ -207,7 +212,7 @@ model AuditLog {
   id         String   @id @default(uuid())
   actorType  String // "shop" | "admin" | "system"
   actorId    String
-  action     String // "PAYMENT_RECEIVED", "PAYMENT_REVERSED", "SHOP_STATUS_CHANGED", "SHOP_FEE_UPDATED", "CUSTOMER_DELETED"
+  action     String // Includes payment, shop status/fee/delete, and customer delete events
   entityType String // "Payment", "Shop", "FeeRecord", "Customer"
   entityId   String
   details    Json?

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '../generated/prisma/client';
 import { AuditService } from '../common/audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -34,15 +38,20 @@ export class AdminService {
     const cur = currentMonth();
 
     const [grouped, activeAgg, paidAgg] = await Promise.all([
-      this.prisma.shop.groupBy({ by: ['status'], _count: { _all: true } }),
+      this.prisma.shop.groupBy({
+        by: ['status'],
+        where: { pendingDeletionAt: null },
+        _count: { _all: true },
+      }),
       this.prisma.shop.aggregate({
-        where: { status: 'active' },
+        where: { status: 'active', pendingDeletionAt: null },
         _sum: { monthlyFee: true },
         _count: { _all: true },
       }),
       this.prisma.shop.aggregate({
         where: {
           status: 'active',
+          pendingDeletionAt: null,
           feeRecords: { some: { month: cur, status: 'paid' } },
         },
         _sum: { monthlyFee: true },
@@ -104,7 +113,7 @@ export class AdminService {
     }
 
     const where: Prisma.ShopWhereInput = {
-      AND: [search, statusWhere, feeWhere],
+      AND: [search, statusWhere, feeWhere, { pendingDeletionAt: null }],
     };
 
     const [items, total, grouped] = await Promise.all([
@@ -119,7 +128,7 @@ export class AdminService {
       // Counts use only the search filter, not the status/fee filters
       this.prisma.shop.groupBy({
         by: ['status'],
-        where: search,
+        where: { AND: [search, { pendingDeletionAt: null }] },
         _count: { _all: true },
       }),
     ]);
@@ -147,6 +156,120 @@ export class AdminService {
     return { status: 'success', data: await this.loadDetail(id) };
   }
 
+  async listPendingDeletion() {
+    const shops = await this.prisma.shop.findMany({
+      where: {
+        pendingDeletionAt: {
+          gt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+        },
+      },
+      select: {
+        id: true,
+        shopNo: true,
+        shopName: true,
+        ownerName: true,
+        pendingDeletionAt: true,
+      },
+      orderBy: { pendingDeletionAt: 'asc' },
+    });
+    return {
+      status: 'success',
+      data: shops.map((shop) => ({
+        id: shop.id,
+        shopCode: shopCode(shop.shopNo),
+        shopName: shop.shopName,
+        ownerName: shop.ownerName,
+        requestedAt: shop.pendingDeletionAt,
+      })),
+    };
+  }
+
+  async undoDeleteShop(id: string, adminId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const shop = await tx.shop.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          pendingDeletionAt: true,
+          deletionPreviousStatus: true,
+        },
+      });
+      if (!shop?.pendingDeletionAt || !shop.deletionPreviousStatus) {
+        throw new NotFoundException('Pending shop deletion not found');
+      }
+      if (
+        shop.pendingDeletionAt.getTime() <=
+        Date.now() - 24 * 60 * 60 * 1000
+      ) {
+        throw new BadRequestException(
+          'The 24-hour recovery period has expired',
+        );
+      }
+
+      await tx.shop.update({
+        where: { id },
+        data: {
+          status: shop.deletionPreviousStatus,
+          pendingDeletionAt: null,
+          deletionPreviousStatus: null,
+        },
+      });
+      await this.audit.recordWithTx(tx, {
+        actorType: 'admin',
+        actorId: adminId,
+        action: 'SHOP_DELETION_UNDONE',
+        entityType: 'Shop',
+        entityId: id,
+      });
+      return { status: 'success', data: { ok: true } };
+    });
+  }
+
+  async deleteShop(
+    id: string,
+    adminId: string,
+    meta?: { ip?: string; userAgent?: string },
+  ) {
+    await this.prisma.$transaction(async (tx) => {
+      const shop = await tx.shop.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          status: true,
+          pendingDeletionAt: true,
+        },
+      });
+      if (!shop) throw new NotFoundException('Shop not found');
+      if (shop.pendingDeletionAt) {
+        throw new BadRequestException('Shop deletion is already pending');
+      }
+
+      const requestedAt = new Date();
+      await tx.shop.update({
+        where: { id },
+        data: {
+          deletionPreviousStatus: shop.status,
+          pendingDeletionAt: requestedAt,
+          status: 'archived',
+        },
+      });
+      await this.audit.recordWithTx(tx, {
+        actorType: 'admin',
+        actorId: adminId,
+        action: 'SHOP_DELETION_SCHEDULED',
+        entityType: 'Shop',
+        entityId: id,
+        details: {
+          scheduledFor: new Date(requestedAt.getTime() + 24 * 60 * 60 * 1000),
+        },
+        ipAddress: meta?.ip,
+        userAgent: meta?.userAgent,
+      });
+    });
+
+    return { status: 'success', data: { ok: true } };
+  }
+
   /* ---------------- 4. SHOP STATUS ---------------- */
   async setStatus(
     id: string,
@@ -156,9 +279,19 @@ export class AdminService {
   ) {
     const exists = await this.prisma.shop.findUnique({
       where: { id },
-      select: { id: true, shopName: true, status: true },
+      select: {
+        id: true,
+        shopName: true,
+        status: true,
+        pendingDeletionAt: true,
+      },
     });
     if (!exists) throw new NotFoundException('Shop not found');
+    if (exists.pendingDeletionAt) {
+      throw new BadRequestException(
+        'Restore this shop before changing its status',
+      );
+    }
 
     const reason = dto.reason?.trim();
     const keepsNote = dto.status === 'inactive' || dto.status === 'archived';
@@ -212,9 +345,14 @@ export class AdminService {
   ) {
     const shop = await this.prisma.shop.findUnique({
       where: { id },
-      select: { status: true },
+      select: { status: true, pendingDeletionAt: true },
     });
     if (!shop) throw new NotFoundException('Shop not found');
+    if (shop.pendingDeletionAt) {
+      throw new BadRequestException(
+        'Restore this shop before changing its fee',
+      );
+    }
 
     const where = { shopId_month: { shopId: id, month: dto.month } };
     const existing = await this.prisma.feeRecord.findUnique({ where });
@@ -264,7 +402,8 @@ export class AdminService {
       where: { id },
       include: { feeRecords: { orderBy: { month: 'desc' }, take: 12 } },
     });
-    if (!shop) throw new NotFoundException('Shop not found');
+    if (!shop || shop.pendingDeletionAt)
+      throw new NotFoundException('Shop not found');
     return this.mapShop(shop, true);
   }
 
