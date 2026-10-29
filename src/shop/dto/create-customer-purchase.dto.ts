@@ -9,6 +9,7 @@ import {
   IsOptional,
   IsString,
   Max,
+  Matches,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -56,4 +57,14 @@ export class CreateCustomerPurchaseDto {
   @Min(1, { message: 'Mahine ki qist kam az kam 1 honi chahiye' })
   @Max(2147483647, { message: 'Mahine ki qist ki raqam bohat zyada hai' })
   monthlyPayment: number;
+
+  @ApiProperty({
+    example: '2026-11-25',
+    description: 'Plan B ki pehli qist ki tareekh',
+  })
+  @IsString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, {
+    message: 'Plan B ki pehli qist ki tareekh sahi likhein',
+  })
+  firstDueDate: string;
 }

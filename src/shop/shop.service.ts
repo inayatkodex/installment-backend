@@ -18,9 +18,11 @@ import { CreateCustomerPurchaseDto } from './dto/create-customer-purchase.dto';
 import { ListCustomersQueryDto } from './dto/list-customers-query.dto';
 import { ReceivePaymentDto } from './dto/receive-payment.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
+import { UpdateCustomerPurchasePaymentDto } from './dto/update-customer-purchase-payment.dto';
 import {
   activeMonthlyTotal,
   buildMultiPlanSchedules,
+  buildSchedule,
   combineInstallmentSchedules,
   addMonths,
   customerCode,
@@ -40,7 +42,10 @@ const FULL = {
   payments: { orderBy: [{ paidOn: 'asc' }, { createdAt: 'asc' }] },
   rateChanges: { orderBy: { fromInstallmentNo: 'asc' } },
   purchases: {
-    include: { items: true },
+    include: {
+      items: true,
+      rateChanges: { orderBy: { fromInstallmentNo: 'asc' } },
+    },
     orderBy: { createdAt: 'asc' },
   },
 } satisfies Prisma.CustomerInclude;
@@ -88,6 +93,7 @@ const LEAN_SELECT = {
       firstDueDate: true,
       allocationStartInstallmentNo: true,
       createdAt: true,
+      rateChanges: { orderBy: { fromInstallmentNo: 'asc' } },
       items: {
         select: {
           id: true,
@@ -106,7 +112,7 @@ type CustomerFull = Prisma.CustomerGetPayload<{
     items: true;
     payments: true;
     rateChanges: true;
-    purchases: { include: { items: true } };
+    purchases: { include: { items: true; rateChanges: true } };
   };
 }>;
 
@@ -454,6 +460,11 @@ export class ShopService {
     id: string,
     dto: CreateCustomerPurchaseDto,
   ) {
+    if (!isRealDate(dto.firstDueDate)) {
+      throw new BadRequestException(
+        'Plan B ki pehli qist ki tareekh sahi likhein',
+      );
+    }
     const total = dto.items.reduce((sum, item) => sum + item.price, 0);
     const downPayment = dto.downPayment ?? 0;
     if (!Number.isSafeInteger(total) || total > 2147483647) {
@@ -518,6 +529,7 @@ export class ShopService {
           downPayment,
           initialMonthlyPayment: dto.monthlyPayment,
           monthlyPayment: dto.monthlyPayment,
+          firstDueDate: dto.firstDueDate,
           allocationStartInstallmentNo,
           items: { create: items },
         },
@@ -531,6 +543,268 @@ export class ShopService {
     });
 
     return ok(await this.detailOf(await this.findFull(shopId, id)));
+  }
+
+  async updateCustomerPurchaseDate(
+    shopId: string,
+    customerId: string,
+    purchaseId: string,
+    firstDueDate: string,
+  ) {
+    if (!isRealDate(firstDueDate)) {
+      throw new BadRequestException(
+        'Plan ki pehli qist ki tareekh sahi likhein',
+      );
+    }
+
+    const result = await this.prisma.customerPurchase.updateMany({
+      where: {
+        id: purchaseId,
+        customerId,
+        customer: { shopId, deletedAt: null },
+      },
+      data: { firstDueDate },
+    });
+    if (!result.count) throw new NotFoundException('Plan nahi mila');
+
+    return ok(await this.detailOf(await this.findFull(shopId, customerId)));
+  }
+
+  async updateCustomerBasePayment(
+    shopId: string,
+    customerId: string,
+    dto: UpdateCustomerPurchasePaymentDto,
+  ) {
+    await this.prisma.$transaction(async (tx) => {
+      const locked = await tx.$queryRaw<{ id: string }[]>`
+        SELECT id FROM "customers"
+        WHERE id = ${customerId} AND "shopId" = ${shopId} AND "deletedAt" IS NULL
+        FOR UPDATE
+      `;
+      if (!locked.length) throw new NotFoundException('Customer nahi mila');
+
+      const customer = await tx.customer.findFirst({
+        where: { id: customerId, shopId, deletedAt: null },
+        include: FULL,
+      });
+      if (!customer) throw new NotFoundException('Customer nahi mila');
+
+      const today = todayIso();
+      const currentPlan = this.financialOf(customer, today).plans[0];
+      const current = currentPlan?.rows.find((row) => row.status !== 'paid');
+      if (!current) {
+        throw new BadRequestException(
+          'Mukammal plan ki qist ki raqam tabdeel nahi ho sakti',
+        );
+      }
+
+      const fromInstallmentNo =
+        current.paid > 0 ? current.no + 1 : current.no;
+      if (fromInstallmentNo > currentPlan.rows.length) {
+        throw new BadRequestException(
+          'Current qist mukammal karein, phir nayi raqam set karein',
+        );
+      }
+
+      const rateChanges = customer.rateChanges.map((change) => ({
+        fromInstallmentNo: change.fromInstallmentNo,
+        monthlyPayment: change.monthlyPayment,
+      }));
+      const existingChange = rateChanges.find(
+        (change) => change.fromInstallmentNo === fromInstallmentNo,
+      );
+      if (existingChange) {
+        existingChange.monthlyPayment = dto.monthlyPayment;
+      } else {
+        rateChanges.push({
+          fromInstallmentNo,
+          monthlyPayment: dto.monthlyPayment,
+        });
+      }
+      rateChanges.sort(
+        (left, right) => left.fromInstallmentNo - right.fromInstallmentNo,
+      );
+
+      const proposedPlan: PlanInput = {
+        items: customer.items,
+        downPayment: customer.downPayment,
+        initialMonthlyPayment: customer.initialMonthlyPayment,
+        firstDueDate: customer.firstDueDate,
+        rateChanges,
+        payments: [],
+      };
+      const proposedRows = buildSchedule(proposedPlan, today);
+      if (
+        proposedRows.length >= MAX_SCHEDULE_INSTALLMENTS &&
+        proposedRows.reduce((sum, row) => sum + row.expected, 0) <
+          totalOf(proposedPlan) - customer.downPayment
+      ) {
+        throw new BadRequestException('Qiston ka schedule bohat lamba hai');
+      }
+
+      const nextMonthlyTotal =
+        customer.monthlyCollectionTarget === null
+          ? null
+          : customer.monthlyCollectionTarget +
+            dto.monthlyPayment -
+            customer.monthlyPayment;
+      if (
+        nextMonthlyTotal !== null &&
+        (nextMonthlyTotal < 1 || nextMonthlyTotal > 2147483647)
+      ) {
+        throw new BadRequestException('Kul mahana qist ki raqam sahi likhein');
+      }
+
+      await tx.customerRateChange.upsert({
+        where: {
+          customerId_fromInstallmentNo: {
+            customerId,
+            fromInstallmentNo,
+          },
+        },
+        create: {
+          customerId,
+          fromInstallmentNo,
+          monthlyPayment: dto.monthlyPayment,
+        },
+        update: { monthlyPayment: dto.monthlyPayment },
+      });
+      await tx.customer.update({
+        where: { id: customerId },
+        data: {
+          monthlyPayment: dto.monthlyPayment,
+          ...(nextMonthlyTotal !== null && {
+            monthlyCollectionTarget: nextMonthlyTotal,
+          }),
+        },
+      });
+    });
+
+    return ok(await this.detailOf(await this.findFull(shopId, customerId)));
+  }
+
+  async updateCustomerPurchasePayment(
+    shopId: string,
+    customerId: string,
+    purchaseId: string,
+    dto: UpdateCustomerPurchasePaymentDto,
+  ) {
+    await this.prisma.$transaction(async (tx) => {
+      const locked = await tx.$queryRaw<{ id: string }[]>`
+        SELECT id FROM "customers"
+        WHERE id = ${customerId} AND "shopId" = ${shopId} AND "deletedAt" IS NULL
+        FOR UPDATE
+      `;
+      if (!locked.length) throw new NotFoundException('Customer nahi mila');
+
+      const customer = await tx.customer.findFirst({
+        where: { id: customerId, shopId, deletedAt: null },
+        include: FULL,
+      });
+      if (!customer) throw new NotFoundException('Customer nahi mila');
+      const purchase = customer.purchases.find(
+        (item) => item.id === purchaseId,
+      );
+      if (!purchase) throw new NotFoundException('Plan nahi mila');
+      if (purchase.firstDueDate === customer.firstDueDate) {
+        throw new BadRequestException(
+          'Alag tareekh wala plan hi alag se edit ho sakta hai',
+        );
+      }
+
+      const today = todayIso();
+      const currentPlan = this.financialOf(customer, today).plans.find(
+        (plan) => plan.id === purchaseId,
+      );
+      if (!currentPlan) throw new NotFoundException('Plan nahi mila');
+      const current = currentPlan.rows.find((row) => row.status !== 'paid');
+      if (!current) {
+        throw new BadRequestException(
+          'Mukammal plan ki qist ki raqam tabdeel nahi ho sakti',
+        );
+      }
+      const fromInstallmentNo =
+        current.paid > 0 ? current.no + 1 : current.no;
+      if (fromInstallmentNo > currentPlan.rows.length) {
+        throw new BadRequestException(
+          'Current qist mukammal karein, phir nayi raqam set karein',
+        );
+      }
+
+      const rateChanges = purchase.rateChanges.map((change) => ({
+        fromInstallmentNo: change.fromInstallmentNo,
+        monthlyPayment: change.monthlyPayment,
+      }));
+      const existingChange = rateChanges.find(
+        (change) => change.fromInstallmentNo === fromInstallmentNo,
+      );
+      if (existingChange) {
+        existingChange.monthlyPayment = dto.monthlyPayment;
+      } else {
+        rateChanges.push({
+          fromInstallmentNo,
+          monthlyPayment: dto.monthlyPayment,
+        });
+      }
+      rateChanges.sort(
+        (left, right) => left.fromInstallmentNo - right.fromInstallmentNo,
+      );
+
+      const proposedPlan: PlanInput = {
+        items: purchase.items,
+        downPayment: purchase.downPayment,
+        initialMonthlyPayment: purchase.initialMonthlyPayment,
+        firstDueDate: purchase.firstDueDate ?? customer.firstDueDate,
+        rateChanges,
+        payments: [],
+      };
+      const proposedRows = buildSchedule(proposedPlan, today);
+      if (
+        proposedRows.length >= MAX_SCHEDULE_INSTALLMENTS &&
+        proposedRows.reduce((sum, row) => sum + row.expected, 0) <
+          totalOf(proposedPlan) - purchase.downPayment
+      ) {
+        throw new BadRequestException('Qiston ka schedule bohat lamba hai');
+      }
+
+      const currentMonthlyTotal =
+        customer.monthlyCollectionTarget ??
+        customer.monthlyPayment +
+          customer.purchases.reduce(
+            (sum, item) => sum + item.monthlyPayment,
+            0,
+          );
+      const nextMonthlyTotal =
+        currentMonthlyTotal + dto.monthlyPayment - purchase.monthlyPayment;
+      if (nextMonthlyTotal < 1 || nextMonthlyTotal > 2147483647) {
+        throw new BadRequestException('Kul mahana qist ki raqam sahi likhein');
+      }
+
+      await tx.customerPurchase.update({
+        where: { id: purchaseId },
+        data: { monthlyPayment: dto.monthlyPayment },
+      });
+      await tx.customerPurchaseRateChange.upsert({
+        where: {
+          purchaseId_fromInstallmentNo: {
+            purchaseId,
+            fromInstallmentNo,
+          },
+        },
+        create: {
+          purchaseId,
+          fromInstallmentNo,
+          monthlyPayment: dto.monthlyPayment,
+        },
+        update: { monthlyPayment: dto.monthlyPayment },
+      });
+      await tx.customer.update({
+        where: { id: customerId },
+        data: { monthlyCollectionTarget: nextMonthlyTotal },
+      });
+
+    });
+    return ok(await this.detailOf(await this.findFull(shopId, customerId)));
   }
 
   /* ================= 9. CUSTOMER EDIT ================= */
@@ -896,7 +1170,7 @@ export class ShopService {
           c.firstDueDate,
           purchase.allocationStartInstallmentNo - 1,
         ),
-        rateChanges: [],
+        rateChanges: purchase.rateChanges,
         createdAt: purchase.createdAt,
       })),
     );
@@ -981,11 +1255,33 @@ export class ShopService {
       financial.plans.length > 1
         ? combineInstallmentSchedules(
             financial.plans.map((plan) => plan.rows),
-          ).map((row) => ({
-            ...row,
-            planId: 'combined',
-            planLabel: 'Tamam plans',
-          }))
+          ).map((row) => {
+            const contributingPlans = financial.plans
+              .map((plan, index) => ({
+                plan,
+                index,
+                installment: plan.rows.find(
+                  (planRow) => planRow.dueDate === row.dueDate,
+                ),
+              }))
+              .filter(({ installment }) => installment);
+            const onlyPlan = contributingPlans[0];
+            return {
+              ...row,
+              no:
+                contributingPlans.length === 1
+                  ? (onlyPlan?.installment?.no ?? row.no)
+                  : row.no,
+              planId:
+                contributingPlans.length === 1
+                  ? (onlyPlan?.plan.id ?? 'combined')
+                  : 'combined',
+              planLabel:
+                contributingPlans.length === 1
+                  ? (onlyPlan?.plan.label ?? 'Tamam plans')
+                  : 'Tamam plans',
+            };
+          })
         : financial.plans.flatMap((plan) =>
             plan.rows.map((row) => ({ ...row, planId: plan.id })),
           );
@@ -1058,11 +1354,7 @@ export class ShopService {
           planId: next.planId,
             planLabel:
             financial.plans.length > 1 ? 'Tamam plans' : undefined,
-          dueDate:
-            financial.plans.length === 1 ||
-            financial.plans.some((plan) => plan.firstDueDate)
-              ? next.dueDate
-              : undefined,
+          dueDate: next.dueDate,
             amount: next.expected - next.paid,
             daysLate: next.daysLate,
           }

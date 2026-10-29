@@ -41,7 +41,7 @@ export function combineInstallmentSchedules(
         .at(-1);
 
       return {
-        no: index + 1,
+        no: rows.length === 1 ? rows[0].no : index + 1,
         dueDate,
         expected,
         paid,

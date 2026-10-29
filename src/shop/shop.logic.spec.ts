@@ -156,6 +156,24 @@ describe('multiple purchase plan allocation', () => {
     expect(combined).toHaveLength(schedules[0].length);
   });
 
+  it('shows plans with different due dates as separate installments', () => {
+    const datedPlans = plans.map((plan, index) =>
+      index === 1 ? { ...plan, firstDueDate: '2026-12-05' } : plan,
+    );
+    const schedules = buildMultiPlanSchedules(
+      datedPlans,
+      [],
+      '2026-11-25',
+      '2026-11-25',
+    );
+    const combined = combineInstallmentSchedules(schedules);
+
+    expect(combined.slice(0, 2)).toMatchObject([
+      { no: 1, dueDate: '2026-11-25', expected: 7500 },
+      { no: 1, dueDate: '2026-12-05', expected: 3000 },
+    ]);
+  });
+
   it('uses the remaining balance of a partially paid combined installment', () => {
     const schedules = buildMultiPlanSchedules(
       plans,

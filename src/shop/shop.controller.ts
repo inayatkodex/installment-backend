@@ -23,6 +23,8 @@ import { ListCustomersQueryDto } from './dto/list-customers-query.dto';
 import { ReceivePaymentDto } from './dto/receive-payment.dto';
 import { StatusQueryDto } from './dto/status-query.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
+import { UpdateCustomerPurchaseDateDto } from './dto/update-customer-purchase-date.dto';
+import { UpdateCustomerPurchasePaymentDto } from './dto/update-customer-purchase-payment.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
 import { ShopService } from './shop.service';
 
@@ -115,6 +117,48 @@ export class ShopController {
     @Body() dto: CreateCustomerPurchaseDto,
   ) {
     return this.shop.addCustomerPurchase(shopId, id, dto);
+  }
+
+  @Put('customers/:id/purchases/:purchaseId/date')
+  @ApiOperation({ summary: 'Plan B ki pehli qist ki tareekh badalna' })
+  updatePurchaseDate(
+    @ShopId() shopId: string,
+    @Param('id') id: string,
+    @Param('purchaseId') purchaseId: string,
+    @Body() dto: UpdateCustomerPurchaseDateDto,
+  ) {
+    return this.shop.updateCustomerPurchaseDate(
+      shopId,
+      id,
+      purchaseId,
+      dto.firstDueDate,
+    );
+  }
+
+  @Put('customers/:id/installment')
+  @ApiOperation({ summary: 'Plan A ki mahana qist badalna' })
+  updateBasePayment(
+    @ShopId() shopId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateCustomerPurchasePaymentDto,
+  ) {
+    return this.shop.updateCustomerBasePayment(shopId, id, dto);
+  }
+
+  @Put('customers/:id/purchases/:purchaseId/installment')
+  @ApiOperation({ summary: 'Plan ki mahana qist badalna' })
+  updatePurchasePayment(
+    @ShopId() shopId: string,
+    @Param('id') id: string,
+    @Param('purchaseId') purchaseId: string,
+    @Body() dto: UpdateCustomerPurchasePaymentDto,
+  ) {
+    return this.shop.updateCustomerPurchasePayment(
+      shopId,
+      id,
+      purchaseId,
+      dto,
+    );
   }
 
   @Put('customers/:id')

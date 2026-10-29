@@ -57,6 +57,7 @@ export const ModelName = {
   Customer: 'Customer',
   CustomerRateChange: 'CustomerRateChange',
   CustomerPurchase: 'CustomerPurchase',
+  CustomerPurchaseRateChange: 'CustomerPurchaseRateChange',
   CustomerPurchaseItem: 'CustomerPurchaseItem',
   CustomerItem: 'CustomerItem',
   Payment: 'Payment',
@@ -180,6 +181,17 @@ export const CustomerPurchaseScalarFieldEnum = {
 } as const
 
 export type CustomerPurchaseScalarFieldEnum = (typeof CustomerPurchaseScalarFieldEnum)[keyof typeof CustomerPurchaseScalarFieldEnum]
+
+
+export const CustomerPurchaseRateChangeScalarFieldEnum = {
+  id: 'id',
+  purchaseId: 'purchaseId',
+  fromInstallmentNo: 'fromInstallmentNo',
+  monthlyPayment: 'monthlyPayment',
+  createdAt: 'createdAt'
+} as const
+
+export type CustomerPurchaseRateChangeScalarFieldEnum = (typeof CustomerPurchaseRateChangeScalarFieldEnum)[keyof typeof CustomerPurchaseRateChangeScalarFieldEnum]
 
 
 export const CustomerPurchaseItemScalarFieldEnum = {

@@ -128,19 +128,33 @@ model CustomerRateChange {
 }
 
 model CustomerPurchase {
-  id                           String                 @id @default(uuid())
+  id                           String                       @id @default(uuid())
   customerId                   String
-  customer                     Customer               @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  downPayment                  Int                    @default(0)
+  customer                     Customer                     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  downPayment                  Int                          @default(0)
   initialMonthlyPayment        Int
   monthlyPayment               Int
   firstDueDate                 String?
   allocationStartInstallmentNo Int
   items                        CustomerPurchaseItem[]
-  createdAt                    DateTime               @default(now())
+  rateChanges                  CustomerPurchaseRateChange[]
+  createdAt                    DateTime                     @default(now())
 
   @@index([customerId, createdAt])
   @@map("customer_purchases")
+}
+
+model CustomerPurchaseRateChange {
+  id                String           @id @default(uuid())
+  purchaseId        String
+  purchase          CustomerPurchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  fromInstallmentNo Int
+  monthlyPayment    Int
+  createdAt         DateTime         @default(now())
+
+  @@unique([purchaseId, fromInstallmentNo])
+  @@index([purchaseId])
+  @@map("customer_purchase_rate_changes")
 }
 
 model CustomerPurchaseItem {

@@ -254,6 +254,7 @@ export type CustomerPurchaseWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"CustomerPurchase"> | Date | string
   customer?: Prisma.XOR<Prisma.CustomerScalarRelationFilter, Prisma.CustomerWhereInput>
   items?: Prisma.CustomerPurchaseItemListRelationFilter
+  rateChanges?: Prisma.CustomerPurchaseRateChangeListRelationFilter
 }
 
 export type CustomerPurchaseOrderByWithRelationInput = {
@@ -267,6 +268,7 @@ export type CustomerPurchaseOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   customer?: Prisma.CustomerOrderByWithRelationInput
   items?: Prisma.CustomerPurchaseItemOrderByRelationAggregateInput
+  rateChanges?: Prisma.CustomerPurchaseRateChangeOrderByRelationAggregateInput
 }
 
 export type CustomerPurchaseWhereUniqueInput = Prisma.AtLeast<{
@@ -283,6 +285,7 @@ export type CustomerPurchaseWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"CustomerPurchase"> | Date | string
   customer?: Prisma.XOR<Prisma.CustomerScalarRelationFilter, Prisma.CustomerWhereInput>
   items?: Prisma.CustomerPurchaseItemListRelationFilter
+  rateChanges?: Prisma.CustomerPurchaseRateChangeListRelationFilter
 }, "id">
 
 export type CustomerPurchaseOrderByWithAggregationInput = {
@@ -325,6 +328,7 @@ export type CustomerPurchaseCreateInput = {
   createdAt?: Date | string
   customer: Prisma.CustomerCreateNestedOneWithoutPurchasesInput
   items?: Prisma.CustomerPurchaseItemCreateNestedManyWithoutPurchaseInput
+  rateChanges?: Prisma.CustomerPurchaseRateChangeCreateNestedManyWithoutPurchaseInput
 }
 
 export type CustomerPurchaseUncheckedCreateInput = {
@@ -337,6 +341,7 @@ export type CustomerPurchaseUncheckedCreateInput = {
   allocationStartInstallmentNo: number
   createdAt?: Date | string
   items?: Prisma.CustomerPurchaseItemUncheckedCreateNestedManyWithoutPurchaseInput
+  rateChanges?: Prisma.CustomerPurchaseRateChangeUncheckedCreateNestedManyWithoutPurchaseInput
 }
 
 export type CustomerPurchaseUpdateInput = {
@@ -349,6 +354,7 @@ export type CustomerPurchaseUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   customer?: Prisma.CustomerUpdateOneRequiredWithoutPurchasesNestedInput
   items?: Prisma.CustomerPurchaseItemUpdateManyWithoutPurchaseNestedInput
+  rateChanges?: Prisma.CustomerPurchaseRateChangeUpdateManyWithoutPurchaseNestedInput
 }
 
 export type CustomerPurchaseUncheckedUpdateInput = {
@@ -361,6 +367,7 @@ export type CustomerPurchaseUncheckedUpdateInput = {
   allocationStartInstallmentNo?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   items?: Prisma.CustomerPurchaseItemUncheckedUpdateManyWithoutPurchaseNestedInput
+  rateChanges?: Prisma.CustomerPurchaseRateChangeUncheckedUpdateManyWithoutPurchaseNestedInput
 }
 
 export type CustomerPurchaseCreateManyInput = {
@@ -499,6 +506,20 @@ export type CustomerPurchaseUncheckedUpdateManyWithoutCustomerNestedInput = {
   deleteMany?: Prisma.CustomerPurchaseScalarWhereInput | Prisma.CustomerPurchaseScalarWhereInput[]
 }
 
+export type CustomerPurchaseCreateNestedOneWithoutRateChangesInput = {
+  create?: Prisma.XOR<Prisma.CustomerPurchaseCreateWithoutRateChangesInput, Prisma.CustomerPurchaseUncheckedCreateWithoutRateChangesInput>
+  connectOrCreate?: Prisma.CustomerPurchaseCreateOrConnectWithoutRateChangesInput
+  connect?: Prisma.CustomerPurchaseWhereUniqueInput
+}
+
+export type CustomerPurchaseUpdateOneRequiredWithoutRateChangesNestedInput = {
+  create?: Prisma.XOR<Prisma.CustomerPurchaseCreateWithoutRateChangesInput, Prisma.CustomerPurchaseUncheckedCreateWithoutRateChangesInput>
+  connectOrCreate?: Prisma.CustomerPurchaseCreateOrConnectWithoutRateChangesInput
+  upsert?: Prisma.CustomerPurchaseUpsertWithoutRateChangesInput
+  connect?: Prisma.CustomerPurchaseWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.CustomerPurchaseUpdateToOneWithWhereWithoutRateChangesInput, Prisma.CustomerPurchaseUpdateWithoutRateChangesInput>, Prisma.CustomerPurchaseUncheckedUpdateWithoutRateChangesInput>
+}
+
 export type CustomerPurchaseCreateNestedOneWithoutItemsInput = {
   create?: Prisma.XOR<Prisma.CustomerPurchaseCreateWithoutItemsInput, Prisma.CustomerPurchaseUncheckedCreateWithoutItemsInput>
   connectOrCreate?: Prisma.CustomerPurchaseCreateOrConnectWithoutItemsInput
@@ -522,6 +543,7 @@ export type CustomerPurchaseCreateWithoutCustomerInput = {
   allocationStartInstallmentNo: number
   createdAt?: Date | string
   items?: Prisma.CustomerPurchaseItemCreateNestedManyWithoutPurchaseInput
+  rateChanges?: Prisma.CustomerPurchaseRateChangeCreateNestedManyWithoutPurchaseInput
 }
 
 export type CustomerPurchaseUncheckedCreateWithoutCustomerInput = {
@@ -533,6 +555,7 @@ export type CustomerPurchaseUncheckedCreateWithoutCustomerInput = {
   allocationStartInstallmentNo: number
   createdAt?: Date | string
   items?: Prisma.CustomerPurchaseItemUncheckedCreateNestedManyWithoutPurchaseInput
+  rateChanges?: Prisma.CustomerPurchaseRateChangeUncheckedCreateNestedManyWithoutPurchaseInput
 }
 
 export type CustomerPurchaseCreateOrConnectWithoutCustomerInput = {
@@ -575,6 +598,70 @@ export type CustomerPurchaseScalarWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"CustomerPurchase"> | Date | string
 }
 
+export type CustomerPurchaseCreateWithoutRateChangesInput = {
+  id?: string
+  downPayment?: number
+  initialMonthlyPayment: number
+  monthlyPayment: number
+  firstDueDate?: string | null
+  allocationStartInstallmentNo: number
+  createdAt?: Date | string
+  customer: Prisma.CustomerCreateNestedOneWithoutPurchasesInput
+  items?: Prisma.CustomerPurchaseItemCreateNestedManyWithoutPurchaseInput
+}
+
+export type CustomerPurchaseUncheckedCreateWithoutRateChangesInput = {
+  id?: string
+  customerId: string
+  downPayment?: number
+  initialMonthlyPayment: number
+  monthlyPayment: number
+  firstDueDate?: string | null
+  allocationStartInstallmentNo: number
+  createdAt?: Date | string
+  items?: Prisma.CustomerPurchaseItemUncheckedCreateNestedManyWithoutPurchaseInput
+}
+
+export type CustomerPurchaseCreateOrConnectWithoutRateChangesInput = {
+  where: Prisma.CustomerPurchaseWhereUniqueInput
+  create: Prisma.XOR<Prisma.CustomerPurchaseCreateWithoutRateChangesInput, Prisma.CustomerPurchaseUncheckedCreateWithoutRateChangesInput>
+}
+
+export type CustomerPurchaseUpsertWithoutRateChangesInput = {
+  update: Prisma.XOR<Prisma.CustomerPurchaseUpdateWithoutRateChangesInput, Prisma.CustomerPurchaseUncheckedUpdateWithoutRateChangesInput>
+  create: Prisma.XOR<Prisma.CustomerPurchaseCreateWithoutRateChangesInput, Prisma.CustomerPurchaseUncheckedCreateWithoutRateChangesInput>
+  where?: Prisma.CustomerPurchaseWhereInput
+}
+
+export type CustomerPurchaseUpdateToOneWithWhereWithoutRateChangesInput = {
+  where?: Prisma.CustomerPurchaseWhereInput
+  data: Prisma.XOR<Prisma.CustomerPurchaseUpdateWithoutRateChangesInput, Prisma.CustomerPurchaseUncheckedUpdateWithoutRateChangesInput>
+}
+
+export type CustomerPurchaseUpdateWithoutRateChangesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  downPayment?: Prisma.IntFieldUpdateOperationsInput | number
+  initialMonthlyPayment?: Prisma.IntFieldUpdateOperationsInput | number
+  monthlyPayment?: Prisma.IntFieldUpdateOperationsInput | number
+  firstDueDate?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  allocationStartInstallmentNo?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  customer?: Prisma.CustomerUpdateOneRequiredWithoutPurchasesNestedInput
+  items?: Prisma.CustomerPurchaseItemUpdateManyWithoutPurchaseNestedInput
+}
+
+export type CustomerPurchaseUncheckedUpdateWithoutRateChangesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  customerId?: Prisma.StringFieldUpdateOperationsInput | string
+  downPayment?: Prisma.IntFieldUpdateOperationsInput | number
+  initialMonthlyPayment?: Prisma.IntFieldUpdateOperationsInput | number
+  monthlyPayment?: Prisma.IntFieldUpdateOperationsInput | number
+  firstDueDate?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  allocationStartInstallmentNo?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  items?: Prisma.CustomerPurchaseItemUncheckedUpdateManyWithoutPurchaseNestedInput
+}
+
 export type CustomerPurchaseCreateWithoutItemsInput = {
   id?: string
   downPayment?: number
@@ -584,6 +671,7 @@ export type CustomerPurchaseCreateWithoutItemsInput = {
   allocationStartInstallmentNo: number
   createdAt?: Date | string
   customer: Prisma.CustomerCreateNestedOneWithoutPurchasesInput
+  rateChanges?: Prisma.CustomerPurchaseRateChangeCreateNestedManyWithoutPurchaseInput
 }
 
 export type CustomerPurchaseUncheckedCreateWithoutItemsInput = {
@@ -595,6 +683,7 @@ export type CustomerPurchaseUncheckedCreateWithoutItemsInput = {
   firstDueDate?: string | null
   allocationStartInstallmentNo: number
   createdAt?: Date | string
+  rateChanges?: Prisma.CustomerPurchaseRateChangeUncheckedCreateNestedManyWithoutPurchaseInput
 }
 
 export type CustomerPurchaseCreateOrConnectWithoutItemsInput = {
@@ -622,6 +711,7 @@ export type CustomerPurchaseUpdateWithoutItemsInput = {
   allocationStartInstallmentNo?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   customer?: Prisma.CustomerUpdateOneRequiredWithoutPurchasesNestedInput
+  rateChanges?: Prisma.CustomerPurchaseRateChangeUpdateManyWithoutPurchaseNestedInput
 }
 
 export type CustomerPurchaseUncheckedUpdateWithoutItemsInput = {
@@ -633,6 +723,7 @@ export type CustomerPurchaseUncheckedUpdateWithoutItemsInput = {
   firstDueDate?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allocationStartInstallmentNo?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  rateChanges?: Prisma.CustomerPurchaseRateChangeUncheckedUpdateManyWithoutPurchaseNestedInput
 }
 
 export type CustomerPurchaseCreateManyCustomerInput = {
@@ -654,6 +745,7 @@ export type CustomerPurchaseUpdateWithoutCustomerInput = {
   allocationStartInstallmentNo?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   items?: Prisma.CustomerPurchaseItemUpdateManyWithoutPurchaseNestedInput
+  rateChanges?: Prisma.CustomerPurchaseRateChangeUpdateManyWithoutPurchaseNestedInput
 }
 
 export type CustomerPurchaseUncheckedUpdateWithoutCustomerInput = {
@@ -665,6 +757,7 @@ export type CustomerPurchaseUncheckedUpdateWithoutCustomerInput = {
   allocationStartInstallmentNo?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   items?: Prisma.CustomerPurchaseItemUncheckedUpdateManyWithoutPurchaseNestedInput
+  rateChanges?: Prisma.CustomerPurchaseRateChangeUncheckedUpdateManyWithoutPurchaseNestedInput
 }
 
 export type CustomerPurchaseUncheckedUpdateManyWithoutCustomerInput = {
@@ -684,10 +777,12 @@ export type CustomerPurchaseUncheckedUpdateManyWithoutCustomerInput = {
 
 export type CustomerPurchaseCountOutputType = {
   items: number
+  rateChanges: number
 }
 
 export type CustomerPurchaseCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   items?: boolean | CustomerPurchaseCountOutputTypeCountItemsArgs
+  rateChanges?: boolean | CustomerPurchaseCountOutputTypeCountRateChangesArgs
 }
 
 /**
@@ -707,6 +802,13 @@ export type CustomerPurchaseCountOutputTypeCountItemsArgs<ExtArgs extends runtim
   where?: Prisma.CustomerPurchaseItemWhereInput
 }
 
+/**
+ * CustomerPurchaseCountOutputType without action
+ */
+export type CustomerPurchaseCountOutputTypeCountRateChangesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CustomerPurchaseRateChangeWhereInput
+}
+
 
 export type CustomerPurchaseSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -719,6 +821,7 @@ export type CustomerPurchaseSelect<ExtArgs extends runtime.Types.Extensions.Inte
   createdAt?: boolean
   customer?: boolean | Prisma.CustomerDefaultArgs<ExtArgs>
   items?: boolean | Prisma.CustomerPurchase$itemsArgs<ExtArgs>
+  rateChanges?: boolean | Prisma.CustomerPurchase$rateChangesArgs<ExtArgs>
   _count?: boolean | Prisma.CustomerPurchaseCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["customerPurchase"]>
 
@@ -761,6 +864,7 @@ export type CustomerPurchaseOmit<ExtArgs extends runtime.Types.Extensions.Intern
 export type CustomerPurchaseInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   customer?: boolean | Prisma.CustomerDefaultArgs<ExtArgs>
   items?: boolean | Prisma.CustomerPurchase$itemsArgs<ExtArgs>
+  rateChanges?: boolean | Prisma.CustomerPurchase$rateChangesArgs<ExtArgs>
   _count?: boolean | Prisma.CustomerPurchaseCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type CustomerPurchaseIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -775,6 +879,7 @@ export type $CustomerPurchasePayload<ExtArgs extends runtime.Types.Extensions.In
   objects: {
     customer: Prisma.$CustomerPayload<ExtArgs>
     items: Prisma.$CustomerPurchaseItemPayload<ExtArgs>[]
+    rateChanges: Prisma.$CustomerPurchaseRateChangePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1181,6 +1286,7 @@ export interface Prisma__CustomerPurchaseClient<T, Null = never, ExtArgs extends
   readonly [Symbol.toStringTag]: "PrismaPromise"
   customer<T extends Prisma.CustomerDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CustomerDefaultArgs<ExtArgs>>): Prisma.Prisma__CustomerClient<runtime.Types.Result.GetResult<Prisma.$CustomerPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   items<T extends Prisma.CustomerPurchase$itemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CustomerPurchase$itemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CustomerPurchaseItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  rateChanges<T extends Prisma.CustomerPurchase$rateChangesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CustomerPurchase$rateChangesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CustomerPurchaseRateChangePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1640,6 +1746,30 @@ export type CustomerPurchase$itemsArgs<ExtArgs extends runtime.Types.Extensions.
   take?: number
   skip?: number
   distinct?: Prisma.CustomerPurchaseItemScalarFieldEnum | Prisma.CustomerPurchaseItemScalarFieldEnum[]
+}
+
+/**
+ * CustomerPurchase.rateChanges
+ */
+export type CustomerPurchase$rateChangesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CustomerPurchaseRateChange
+   */
+  select?: Prisma.CustomerPurchaseRateChangeSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CustomerPurchaseRateChange
+   */
+  omit?: Prisma.CustomerPurchaseRateChangeOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CustomerPurchaseRateChangeInclude<ExtArgs> | null
+  where?: Prisma.CustomerPurchaseRateChangeWhereInput
+  orderBy?: Prisma.CustomerPurchaseRateChangeOrderByWithRelationInput | Prisma.CustomerPurchaseRateChangeOrderByWithRelationInput[]
+  cursor?: Prisma.CustomerPurchaseRateChangeWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CustomerPurchaseRateChangeScalarFieldEnum | Prisma.CustomerPurchaseRateChangeScalarFieldEnum[]
 }
 
 /**
