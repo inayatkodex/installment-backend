@@ -26,7 +26,7 @@ export class ShopGuard implements CanActivate {
       throw new UnauthorizedException('Pehle login karein');
     }
 
-    let payload: { sub: string; role: string };
+    let payload: { sub: string; role: string; sessionVersion?: number };
     try {
       payload = await this.jwt.verifyAsync(token);
     } catch {
@@ -41,11 +41,20 @@ export class ShopGuard implements CanActivate {
 
     const shop = await this.prisma.shop.findUnique({
       where: { id: payload.sub },
-      select: { status: true, pendingDeletionAt: true },
+      select: {
+        status: true,
+        pendingDeletionAt: true,
+        tokenVersion: true,
+      },
     });
     if (!shop || shop.status !== 'active' || shop.pendingDeletionAt) {
       throw new UnauthorizedException(
         'Aap ka account active nahi hai. Admin se rabta karein.',
+      );
+    }
+    if ((payload.sessionVersion ?? 0) !== shop.tokenVersion) {
+      throw new UnauthorizedException(
+        'Aap ka session khatam ho gaya, dobara login karein',
       );
     }
 

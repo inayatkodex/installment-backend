@@ -16,6 +16,7 @@ import { AdminId } from '../common/decorators/admin-id.decorator';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { AdminService } from './admin.service';
 import { ListShopsQueryDto } from './dto/list-shops-query.dto';
+import { ResetShopPasswordDto } from './dto/reset-shop-password.dto';
 import { SetShopFeeDto } from './dto/set-shop-fee.dto';
 import { UpdateShopStatusDto } from './dto/update-shop-status.dto';
 
@@ -58,6 +59,20 @@ export class AdminController {
   @ApiOperation({ summary: 'Single shop detail and fee history' })
   getShop(@Param('id') id: string) {
     return this.admin.getShop(id);
+  }
+
+  @Patch('shops/:id/password')
+  @ApiOperation({ summary: "Reset a shop's password and revoke existing sessions" })
+  resetShopPassword(
+    @Param('id') id: string,
+    @Body() dto: ResetShopPasswordDto,
+    @AdminId() adminId: string,
+    @Req() req: Request,
+  ) {
+    return this.admin.resetShopPassword(id, dto, adminId, {
+      ip: req?.ip,
+      userAgent: req?.headers['user-agent'],
+    });
   }
 
   @Delete('shops/:id')

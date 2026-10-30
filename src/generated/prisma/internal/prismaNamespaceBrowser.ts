@@ -95,6 +95,7 @@ export const ShopScalarFieldEnum = {
   statusNote: 'statusNote',
   pendingDeletionAt: 'pendingDeletionAt',
   deletionPreviousStatus: 'deletionPreviousStatus',
+  tokenVersion: 'tokenVersion',
   monthlyFee: 'monthlyFee',
   customerSeq: 'customerSeq',
   profilePic: 'profilePic',

@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { Prisma } from '../generated/prisma/client';
 import {
   currentMonth,
@@ -14,12 +15,14 @@ import {
 import { AuditService } from '../common/audit/audit.service';
 import { StorageService } from '../common/storage/storage.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { ChangeShopPasswordDto } from './dto/change-shop-password.dto';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { CreateCustomerPurchaseDto } from './dto/create-customer-purchase.dto';
 import { ListCustomersQueryDto } from './dto/list-customers-query.dto';
 import { ReceivePaymentDto } from './dto/receive-payment.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { UpdateCustomerPurchasePaymentDto } from './dto/update-customer-purchase-payment.dto';
+import { UpdateShopProfileDto } from './dto/update-shop-profile.dto';
 import {
   activeMonthlyTotal,
   buildMultiPlanSchedules,
@@ -173,6 +176,105 @@ export class ShopService {
     if (!shop) throw new NotFoundException('Shop nahi mili');
     const { shopNo, ...details } = shop;
     return ok({ ...details, shopCode: shopCode(shopNo) });
+  }
+
+  async updateProfile(
+    shopId: string,
+    dto: UpdateShopProfileDto,
+    meta?: { ip?: string; userAgent?: string },
+  ) {
+    const data = {
+      ...(dto.shopName !== undefined && { shopName: dto.shopName }),
+      ...(dto.ownerName !== undefined && { ownerName: dto.ownerName }),
+      ...(dto.email !== undefined && { email: dto.email }),
+      ...(dto.city !== undefined && { city: dto.city }),
+      ...(dto.address !== undefined && { address: dto.address }),
+      ...(dto.profilePic != null && {
+        profilePic: await this.storage.saveBase64(dto.profilePic, 'shops'),
+      }),
+    };
+    const changedFields = Object.keys(data);
+    if (changedFields.length === 0) {
+      throw new BadRequestException('Badalne ke liye profile details chunein');
+    }
+
+    const previousProfilePic = dto.profilePic
+      ? await this.prisma.shop.findUnique({
+          where: { id: shopId },
+          select: { profilePic: true },
+        })
+      : null;
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.shop.update({ where: { id: shopId }, data });
+      await this.audit.recordWithTx(tx, {
+        actorType: 'shop',
+        actorId: shopId,
+        action: 'SHOP_PROFILE_UPDATED',
+        entityType: 'Shop',
+        entityId: shopId,
+        details: { changedFields },
+        ipAddress: meta?.ip,
+        userAgent: meta?.userAgent,
+      });
+    });
+
+    if (
+      dto.profilePic &&
+      previousProfilePic?.profilePic &&
+      previousProfilePic.profilePic !== data.profilePic
+    ) {
+      await this.storage.deleteFile(previousProfilePic.profilePic);
+    }
+
+    return this.profile(shopId);
+  }
+
+  async changePassword(
+    shopId: string,
+    dto: ChangeShopPasswordDto,
+    meta?: { ip?: string; userAgent?: string },
+  ) {
+    const shop = await this.prisma.shop.findUnique({
+      where: { id: shopId },
+      select: { passwordHash: true },
+    });
+    if (!shop) throw new NotFoundException('Shop nahi mili');
+    if (!(await bcrypt.compare(dto.currentPassword, shop.passwordHash))) {
+      throw new BadRequestException('Maujooda password sahi nahi hai');
+    }
+    if (Buffer.byteLength(dto.newPassword, 'utf8') > 72) {
+      throw new BadRequestException(
+        'Naya password 72 bytes se zyada nahi ho sakta',
+      );
+    }
+    if (dto.currentPassword === dto.newPassword) {
+      throw new BadRequestException(
+        'Naya password maujooda password se mukhtalif hona chahiye',
+      );
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.shop.update({
+        where: { id: shopId },
+        data: {
+          passwordHash,
+          tokenVersion: { increment: 1 },
+        },
+      });
+      await this.audit.recordWithTx(tx, {
+        actorType: 'shop',
+        actorId: shopId,
+        action: 'SHOP_PASSWORD_CHANGED',
+        entityType: 'Shop',
+        entityId: shopId,
+        ipAddress: meta?.ip,
+        userAgent: meta?.userAgent,
+      });
+    });
+
+    return ok({ ok: true });
   }
 
   /* ================= 1. DASHBOARD ================= */

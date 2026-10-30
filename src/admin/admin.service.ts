@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { Prisma } from '../generated/prisma/client';
 import { AuditService } from '../common/audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -14,6 +15,7 @@ import {
   shopCode,
 } from './admin.utils';
 import { ListShopsQueryDto } from './dto/list-shops-query.dto';
+import { ResetShopPasswordDto } from './dto/reset-shop-password.dto';
 import { SetShopFeeDto } from './dto/set-shop-fee.dto';
 import { UpdateShopStatusDto } from './dto/update-shop-status.dto';
 
@@ -154,6 +156,48 @@ export class AdminService {
   /* ---------------- 3. SHOP DETAIL ---------------- */
   async getShop(id: string) {
     return { status: 'success', data: await this.loadDetail(id) };
+  }
+
+  async resetShopPassword(
+    id: string,
+    dto: ResetShopPasswordDto,
+    adminId: string,
+    meta?: { ip?: string; userAgent?: string },
+  ) {
+    if (Buffer.byteLength(dto.newPassword, 'utf8') > 72) {
+      throw new BadRequestException('Password must be no more than 72 bytes.');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.shop.updateMany({
+        where: { id, pendingDeletionAt: null },
+        data: {
+          passwordHash,
+          tokenVersion: { increment: 1 },
+        },
+      });
+      if (updated.count !== 1) {
+        throw new NotFoundException('Shop not found');
+      }
+
+      const shop = await tx.shop.findUniqueOrThrow({
+        where: { id },
+        select: { shopName: true },
+      });
+      await this.audit.recordWithTx(tx, {
+        actorType: 'admin',
+        actorId: adminId,
+        action: 'SHOP_PASSWORD_RESET',
+        entityType: 'Shop',
+        entityId: id,
+        details: { shopName: shop.shopName },
+        ipAddress: meta?.ip,
+        userAgent: meta?.userAgent,
+      });
+    });
+
+    return { status: 'success', data: { ok: true } };
   }
 
   async listPendingDeletion() {

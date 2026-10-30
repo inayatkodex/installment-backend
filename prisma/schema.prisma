@@ -35,6 +35,7 @@ model Shop {
   statusNote             String?
   pendingDeletionAt      DateTime?
   deletionPreviousStatus ShopStatus?
+  tokenVersion           Int         @default(0)
   monthlyFee             Int         @default(2500)
   customerSeq            Int         @default(0)
 

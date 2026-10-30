@@ -27,8 +27,16 @@ export class AuthService {
     return value.replace(/\D/g, '');
   }
 
-  private token(sub: string, role: 'shop' | 'admin', rememberMe?: boolean) {
-    return this.jwt.signAsync({ sub, role }, { expiresIn: rememberMe ? '7d' : '1d' });
+  private token(
+    sub: string,
+    role: 'shop' | 'admin',
+    rememberMe?: boolean,
+    sessionVersion = 0,
+  ) {
+    return this.jwt.signAsync(
+      { sub, role, ...(role === 'shop' && { sessionVersion }) },
+      { expiresIn: rememberMe ? '7d' : '1d' },
+    );
   }
 
   /* ---------------- SHOP SIGNUP ---------------- */
@@ -113,12 +121,18 @@ export class AuthService {
     return {
       status: 'success',
       data: {
-        access_token: await this.token(shop.id, 'shop', dto.rememberMe),
+        access_token: await this.token(
+          shop.id,
+          'shop',
+          dto.rememberMe,
+          shop.tokenVersion,
+        ),
         user: {
           id: shop.id,
           shopName: shop.shopName,
           ownerName: shop.ownerName,
           mobile: shop.mobile,
+          profilePic: shop.profilePic,
         },
       },
     };

@@ -17,6 +17,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { ShopId } from '../common/decorators/shop-id.decorator';
 import { ShopGuard } from '../common/guards/shop.guard';
+import { ChangeShopPasswordDto } from './dto/change-shop-password.dto';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { CreateCustomerPurchaseDto } from './dto/create-customer-purchase.dto';
 import { ListCustomersQueryDto } from './dto/list-customers-query.dto';
@@ -26,6 +27,7 @@ import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { UpdateCustomerPurchaseDateDto } from './dto/update-customer-purchase-date.dto';
 import { UpdateCustomerPurchasePaymentDto } from './dto/update-customer-purchase-payment.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
+import { UpdateShopProfileDto } from './dto/update-shop-profile.dto';
 import { ShopService } from './shop.service';
 
 @ApiTags('Shop')
@@ -39,6 +41,32 @@ export class ShopController {
   @ApiOperation({ summary: 'Shop ki profile details' })
   profile(@ShopId() shopId: string) {
     return this.shop.profile(shopId);
+  }
+
+  @Put('profile')
+  @ApiOperation({ summary: 'Shop profile details update karna' })
+  updateProfile(
+    @ShopId() shopId: string,
+    @Body() dto: UpdateShopProfileDto,
+    @Req() req?: Request,
+  ) {
+    return this.shop.updateProfile(shopId, dto, {
+      ip: req?.ip,
+      userAgent: req?.headers['user-agent'],
+    });
+  }
+
+  @Put('profile/password')
+  @ApiOperation({ summary: 'Shop password change karna' })
+  changePassword(
+    @ShopId() shopId: string,
+    @Body() dto: ChangeShopPasswordDto,
+    @Req() req?: Request,
+  ) {
+    return this.shop.changePassword(shopId, dto, {
+      ip: req?.ip,
+      userAgent: req?.headers['user-agent'],
+    });
   }
 
   @Get('dashboard')
