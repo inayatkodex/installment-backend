@@ -35,6 +35,12 @@ import { ShopService } from './shop.service';
 export class ShopController {
   constructor(private readonly shop: ShopService) {}
 
+  @Get('profile')
+  @ApiOperation({ summary: 'Shop ki profile details' })
+  profile(@ShopId() shopId: string) {
+    return this.shop.profile(shopId);
+  }
+
   @Get('dashboard')
   @ApiOperation({
     summary: 'Dashboard: aaj ki wasooli, late aur mahine ka hisaab',

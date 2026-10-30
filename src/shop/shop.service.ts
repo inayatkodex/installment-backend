@@ -9,6 +9,7 @@ import {
   dateOnly,
   formatMobile,
   monthLabel,
+  shopCode,
 } from '../admin/admin.utils';
 import { AuditService } from '../common/audit/audit.service';
 import { StorageService } from '../common/storage/storage.service';
@@ -150,6 +151,29 @@ export class ShopService {
     private readonly audit: AuditService,
     private readonly storage: StorageService,
   ) {}
+
+  async profile(shopId: string) {
+    const shop = await this.prisma.shop.findUnique({
+      where: { id: shopId },
+      select: {
+        shopNo: true,
+        shopName: true,
+        ownerName: true,
+        mobile: true,
+        email: true,
+        cnic: true,
+        city: true,
+        address: true,
+        profilePic: true,
+        status: true,
+        monthlyFee: true,
+        createdAt: true,
+      },
+    });
+    if (!shop) throw new NotFoundException('Shop nahi mili');
+    const { shopNo, ...details } = shop;
+    return ok({ ...details, shopCode: shopCode(shopNo) });
+  }
 
   /* ================= 1. DASHBOARD ================= */
   async dashboard(shopId: string) {
