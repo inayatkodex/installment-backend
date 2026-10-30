@@ -57,6 +57,10 @@ export class ShopSignupDto {
   @ApiProperty({ example: '123456', minLength: 6, format: 'password' })
   @IsString()
   @MinLength(6, { message: 'Password kam az kam 6 huroof ka hona chahiye' })
+  @Matches(/^(?=.*[A-Za-z])(?=.*\d).+$/, {
+    message:
+      'Password mein kam az kam aik English letter aur aik number zaroor ho',
+  })
   password: string;
 
   @ApiPropertyOptional({ description: 'Profile photo (base64 data URL)' })

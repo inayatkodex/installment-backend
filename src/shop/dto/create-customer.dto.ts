@@ -3,6 +3,7 @@ import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
+  IsDateString,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -100,6 +101,7 @@ export class CreateCustomerDto {
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
     message: 'Pehli qist ki tareekh sahi likhein',
   })
+  @IsDateString({}, { message: 'Pehli qist ki tareekh sahi likhein' })
   firstDueDate: string;
 
   @ApiPropertyOptional({ type: () => CustomerDocumentsDto })
