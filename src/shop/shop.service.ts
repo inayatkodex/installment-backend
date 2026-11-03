@@ -1624,14 +1624,18 @@ export class ShopService {
   }
 
   private reportOf(customers: CustomerRecord[], month: string, today: string) {
-    const rows = customers
-      .flatMap((c) => {
-        const plans = this.financialOf(c, today).plans;
-        return plans[0]?.firstDueDate
-          ? combineInstallmentSchedules(plans.map((plan) => plan.rows))
+    const customerRows = customers
+      .map((customer) => {
+        const plans = this.financialOf(customer, today).plans;
+        const rows = plans[0]?.firstDueDate
+          ? combineInstallmentSchedules(plans.map((plan) => plan.rows)).filter(
+              (row) => row.dueDate.startsWith(month),
+            )
           : [];
+        return { customer, rows };
       })
-      .filter((r) => r.dueDate.startsWith(month));
+      .filter(({ rows }) => rows.length > 0);
+    const rows = customerRows.flatMap(({ rows }) => rows);
 
     const expected = rows.reduce((s, r) => s + r.expected, 0);
     const received = rows.reduce((s, r) => s + r.paid, 0);
@@ -1650,6 +1654,37 @@ export class ShopService {
       paidInstallments: rows.filter((r) => r.status === 'paid').length,
       pendingInstallments: rows.filter((r) => r.status !== 'paid').length,
       overdueCustomers: this.lateOf(customers, today).length,
+      customers: customerRows
+        .map(({ customer, rows: customerMonthRows }) => {
+          const customerExpected = customerMonthRows.reduce(
+            (sum, row) => sum + row.expected,
+            0,
+          );
+          const customerReceived = customerMonthRows.reduce(
+            (sum, row) => sum + row.paid,
+            0,
+          );
+          const lateRows = customerMonthRows.filter((row) => row.daysLate > 0);
+          return {
+            customerId: customer.id,
+            name: customer.name,
+            phone: formatMobile(customer.phone),
+            expected: customerExpected,
+            received: customerReceived,
+            remaining: customerExpected - customerReceived,
+            overdue: lateRows.reduce(
+              (sum, row) => sum + row.expected - row.paid,
+              0,
+            ),
+            paidInstallments: customerMonthRows.filter(
+              (row) => row.status === 'paid',
+            ).length,
+            pendingInstallments: customerMonthRows.filter(
+              (row) => row.status !== 'paid',
+            ).length,
+          };
+        })
+        .sort((a, b) => b.overdue - a.overdue || a.name.localeCompare(b.name)),
     };
   }
 }
