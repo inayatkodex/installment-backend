@@ -91,7 +91,9 @@ export class ShopController {
 
   @Post('payments/receive')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Customer se payment lena' })
+  @ApiOperation({
+    summary: 'Payment lena aur FIFO qist allocation ki tafseel hasil karna',
+  })
   receive(
     @ShopId() shopId: string,
     @Body() dto: ReceivePaymentDto,
@@ -170,7 +172,9 @@ export class ShopController {
   }
 
   @Put('customers/:id/purchases/:purchaseId/date')
-  @ApiOperation({ summary: 'Plan B ki pehli qist ki tareekh badalna' })
+  @ApiOperation({
+    summary: 'Plan ki agli unpaid qist aur baad ki tareekhein badalna',
+  })
   updatePurchaseDate(
     @ShopId() shopId: string,
     @Param('id') id: string,

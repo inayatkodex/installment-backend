@@ -105,10 +105,11 @@ model Customer {
   deletedAt               DateTime?
   deletionRequestedAt     DateTime?
 
-  items       CustomerItem[]
-  payments    Payment[]
-  rateChanges CustomerRateChange[]
-  purchases   CustomerPurchase[]
+  items               CustomerItem[]
+  payments            Payment[]
+  rateChanges         CustomerRateChange[]
+  scheduleDateChanges CustomerScheduleDateChange[]
+  purchases           CustomerPurchase[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -133,21 +134,48 @@ model CustomerRateChange {
   @@map("customer_rate_changes")
 }
 
+model CustomerScheduleDateChange {
+  id                String   @id @default(uuid())
+  customerId        String
+  customer          Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  fromInstallmentNo Int
+  firstDueDate      String
+  createdAt         DateTime @default(now())
+
+  @@unique([customerId, fromInstallmentNo])
+  @@index([customerId])
+  @@map("customer_schedule_date_changes")
+}
+
 model CustomerPurchase {
-  id                           String                       @id @default(uuid())
+  id                           String                               @id @default(uuid())
   customerId                   String
-  customer                     Customer                     @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  downPayment                  Int                          @default(0)
+  customer                     Customer                             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  downPayment                  Int                                  @default(0)
   initialMonthlyPayment        Int
   monthlyPayment               Int
   firstDueDate                 String?
   allocationStartInstallmentNo Int
   items                        CustomerPurchaseItem[]
   rateChanges                  CustomerPurchaseRateChange[]
-  createdAt                    DateTime                     @default(now())
+  scheduleDateChanges          CustomerPurchaseScheduleDateChange[]
+  createdAt                    DateTime                             @default(now())
 
   @@index([customerId, createdAt])
   @@map("customer_purchases")
+}
+
+model CustomerPurchaseScheduleDateChange {
+  id                String           @id @default(uuid())
+  purchaseId        String
+  purchase          CustomerPurchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  fromInstallmentNo Int
+  firstDueDate      String
+  createdAt         DateTime         @default(now())
+
+  @@unique([purchaseId, fromInstallmentNo])
+  @@index([purchaseId])
+  @@map("customer_purchase_schedule_date_changes")
 }
 
 model CustomerPurchaseRateChange {

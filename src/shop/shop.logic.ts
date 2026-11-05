@@ -31,10 +31,7 @@ export function combineInstallmentSchedules(
     .map(([dueDate, rows], index) => {
       const expected = rows.reduce((sum, row) => sum + row.expected, 0);
       const paid = rows.reduce((sum, row) => sum + row.paid, 0);
-      const daysLate =
-        paid < expected
-          ? Math.max(...rows.map((row) => row.daysLate))
-          : 0;
+      const daysLate = Math.max(...rows.map((row) => row.daysLate));
       const latestPayment = rows
         .filter((row) => row.paidOn)
         .sort((a, b) => (a.paidOn ?? '').localeCompare(b.paidOn ?? ''))
@@ -66,6 +63,10 @@ export interface PlanInput {
   downPayment: number;
   initialMonthlyPayment: number;
   firstDueDate: string;
+  scheduleDateChanges?: {
+    fromInstallmentNo: number;
+    firstDueDate: string;
+  }[];
   rateChanges: { fromInstallmentNo: number; monthlyPayment: number }[];
   /** Sirf wo payments jo wapas nahi hui, purani pehle */
   payments: {
@@ -88,6 +89,10 @@ export interface MultiPlanInput {
   initialMonthlyPayment: number;
   firstDueDate: string | null;
   scheduleStartDate?: string;
+  scheduleDateChanges?: {
+    fromInstallmentNo: number;
+    firstDueDate: string;
+  }[];
   rateChanges: { fromInstallmentNo: number; monthlyPayment: number }[];
   createdAt: Date;
 }
@@ -178,6 +183,12 @@ export function buildSchedule(c: PlanInput, today: string): InstallmentRow[] {
   let scheduled = 0;
   let installmentNo = 1;
   let changeIndex = 0;
+  const dateChanges = [...(c.scheduleDateChanges ?? [])].sort(
+    (a, b) => a.fromInstallmentNo - b.fromInstallmentNo,
+  );
+  let dateChangeIndex = 0;
+  let dueDateStart = c.firstDueDate;
+  let dueDateStartInstallmentNo = 1;
   let activeMonthly = monthlyOf(c);
 
   while (scheduled < remaining && installmentNo <= MAX_SCHEDULE_INSTALLMENTS) {
@@ -188,12 +199,24 @@ export function buildSchedule(c: PlanInput, today: string): InstallmentRow[] {
       activeMonthly = rateChanges[changeIndex].monthlyPayment;
       changeIndex += 1;
     }
+    while (
+      dateChangeIndex < dateChanges.length &&
+      dateChanges[dateChangeIndex].fromInstallmentNo <= installmentNo
+    ) {
+      dueDateStart = dateChanges[dateChangeIndex].firstDueDate;
+      dueDateStartInstallmentNo =
+        dateChanges[dateChangeIndex].fromInstallmentNo;
+      dateChangeIndex += 1;
+    }
     if (activeMonthly <= 0) break;
 
     const expected = Math.min(activeMonthly, remaining - scheduled);
     rows.push({
       no: installmentNo,
-      dueDate: addMonths(c.firstDueDate, installmentNo - 1),
+      dueDate: addMonths(
+        dueDateStart,
+        installmentNo - dueDateStartInstallmentNo,
+      ),
       expected,
       paid: 0,
       status: 'pending',
@@ -219,8 +242,12 @@ export function buildSchedule(c: PlanInput, today: string): InstallmentRow[] {
   }
 
   for (const r of rows) {
-    const late = r.dueDate < today && r.paid < r.expected;
-    r.daysLate = late ? diffDays(r.dueDate, today) : 0;
+    const referenceDate = r.paid >= r.expected ? r.paidOn : today;
+    r.daysLate =
+      referenceDate && referenceDate > r.dueDate
+        ? diffDays(r.dueDate, referenceDate)
+        : 0;
+    const late = r.daysLate > 0 && r.paid < r.expected;
     r.status =
       r.paid >= r.expected
         ? 'paid'
@@ -286,8 +313,12 @@ export function buildMultiPlanSchedules(
 
   for (const rows of schedules) {
     for (const row of rows) {
-      const late = row.dueDate < today && row.paid < row.expected;
-      row.daysLate = late ? diffDays(row.dueDate, today) : 0;
+      const referenceDate = row.paid >= row.expected ? row.paidOn : today;
+      row.daysLate =
+        referenceDate && referenceDate > row.dueDate
+          ? diffDays(row.dueDate, referenceDate)
+          : 0;
+      const late = row.daysLate > 0 && row.paid < row.expected;
       row.status =
         row.paid >= row.expected
           ? 'paid'

@@ -402,7 +402,9 @@ export const ModelName = {
   Admin: 'Admin',
   Customer: 'Customer',
   CustomerRateChange: 'CustomerRateChange',
+  CustomerScheduleDateChange: 'CustomerScheduleDateChange',
   CustomerPurchase: 'CustomerPurchase',
+  CustomerPurchaseScheduleDateChange: 'CustomerPurchaseScheduleDateChange',
   CustomerPurchaseRateChange: 'CustomerPurchaseRateChange',
   CustomerPurchaseItem: 'CustomerPurchaseItem',
   CustomerItem: 'CustomerItem',
@@ -423,7 +425,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "shop" | "feeRecord" | "admin" | "customer" | "customerRateChange" | "customerPurchase" | "customerPurchaseRateChange" | "customerPurchaseItem" | "customerItem" | "payment" | "auditLog"
+    modelProps: "shop" | "feeRecord" | "admin" | "customer" | "customerRateChange" | "customerScheduleDateChange" | "customerPurchase" | "customerPurchaseScheduleDateChange" | "customerPurchaseRateChange" | "customerPurchaseItem" | "customerItem" | "payment" | "auditLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -797,6 +799,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    CustomerScheduleDateChange: {
+      payload: Prisma.$CustomerScheduleDateChangePayload<ExtArgs>
+      fields: Prisma.CustomerScheduleDateChangeFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CustomerScheduleDateChangeFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerScheduleDateChangePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CustomerScheduleDateChangeFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerScheduleDateChangePayload>
+        }
+        findFirst: {
+          args: Prisma.CustomerScheduleDateChangeFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerScheduleDateChangePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CustomerScheduleDateChangeFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerScheduleDateChangePayload>
+        }
+        findMany: {
+          args: Prisma.CustomerScheduleDateChangeFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerScheduleDateChangePayload>[]
+        }
+        create: {
+          args: Prisma.CustomerScheduleDateChangeCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerScheduleDateChangePayload>
+        }
+        createMany: {
+          args: Prisma.CustomerScheduleDateChangeCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CustomerScheduleDateChangeCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerScheduleDateChangePayload>[]
+        }
+        delete: {
+          args: Prisma.CustomerScheduleDateChangeDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerScheduleDateChangePayload>
+        }
+        update: {
+          args: Prisma.CustomerScheduleDateChangeUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerScheduleDateChangePayload>
+        }
+        deleteMany: {
+          args: Prisma.CustomerScheduleDateChangeDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CustomerScheduleDateChangeUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CustomerScheduleDateChangeUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerScheduleDateChangePayload>[]
+        }
+        upsert: {
+          args: Prisma.CustomerScheduleDateChangeUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerScheduleDateChangePayload>
+        }
+        aggregate: {
+          args: Prisma.CustomerScheduleDateChangeAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCustomerScheduleDateChange>
+        }
+        groupBy: {
+          args: Prisma.CustomerScheduleDateChangeGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CustomerScheduleDateChangeGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CustomerScheduleDateChangeCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CustomerScheduleDateChangeCountAggregateOutputType> | number
+        }
+      }
+    }
     CustomerPurchase: {
       payload: Prisma.$CustomerPurchasePayload<ExtArgs>
       fields: Prisma.CustomerPurchaseFieldRefs
@@ -868,6 +944,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.CustomerPurchaseCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.CustomerPurchaseCountAggregateOutputType> | number
+        }
+      }
+    }
+    CustomerPurchaseScheduleDateChange: {
+      payload: Prisma.$CustomerPurchaseScheduleDateChangePayload<ExtArgs>
+      fields: Prisma.CustomerPurchaseScheduleDateChangeFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CustomerPurchaseScheduleDateChangeFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchaseScheduleDateChangePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CustomerPurchaseScheduleDateChangeFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchaseScheduleDateChangePayload>
+        }
+        findFirst: {
+          args: Prisma.CustomerPurchaseScheduleDateChangeFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchaseScheduleDateChangePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CustomerPurchaseScheduleDateChangeFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchaseScheduleDateChangePayload>
+        }
+        findMany: {
+          args: Prisma.CustomerPurchaseScheduleDateChangeFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchaseScheduleDateChangePayload>[]
+        }
+        create: {
+          args: Prisma.CustomerPurchaseScheduleDateChangeCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchaseScheduleDateChangePayload>
+        }
+        createMany: {
+          args: Prisma.CustomerPurchaseScheduleDateChangeCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CustomerPurchaseScheduleDateChangeCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchaseScheduleDateChangePayload>[]
+        }
+        delete: {
+          args: Prisma.CustomerPurchaseScheduleDateChangeDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchaseScheduleDateChangePayload>
+        }
+        update: {
+          args: Prisma.CustomerPurchaseScheduleDateChangeUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchaseScheduleDateChangePayload>
+        }
+        deleteMany: {
+          args: Prisma.CustomerPurchaseScheduleDateChangeDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CustomerPurchaseScheduleDateChangeUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CustomerPurchaseScheduleDateChangeUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchaseScheduleDateChangePayload>[]
+        }
+        upsert: {
+          args: Prisma.CustomerPurchaseScheduleDateChangeUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CustomerPurchaseScheduleDateChangePayload>
+        }
+        aggregate: {
+          args: Prisma.CustomerPurchaseScheduleDateChangeAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCustomerPurchaseScheduleDateChange>
+        }
+        groupBy: {
+          args: Prisma.CustomerPurchaseScheduleDateChangeGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CustomerPurchaseScheduleDateChangeGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CustomerPurchaseScheduleDateChangeCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CustomerPurchaseScheduleDateChangeCountAggregateOutputType> | number
         }
       }
     }
@@ -1373,6 +1523,17 @@ export const CustomerRateChangeScalarFieldEnum = {
 export type CustomerRateChangeScalarFieldEnum = (typeof CustomerRateChangeScalarFieldEnum)[keyof typeof CustomerRateChangeScalarFieldEnum]
 
 
+export const CustomerScheduleDateChangeScalarFieldEnum = {
+  id: 'id',
+  customerId: 'customerId',
+  fromInstallmentNo: 'fromInstallmentNo',
+  firstDueDate: 'firstDueDate',
+  createdAt: 'createdAt'
+} as const
+
+export type CustomerScheduleDateChangeScalarFieldEnum = (typeof CustomerScheduleDateChangeScalarFieldEnum)[keyof typeof CustomerScheduleDateChangeScalarFieldEnum]
+
+
 export const CustomerPurchaseScalarFieldEnum = {
   id: 'id',
   customerId: 'customerId',
@@ -1385,6 +1546,17 @@ export const CustomerPurchaseScalarFieldEnum = {
 } as const
 
 export type CustomerPurchaseScalarFieldEnum = (typeof CustomerPurchaseScalarFieldEnum)[keyof typeof CustomerPurchaseScalarFieldEnum]
+
+
+export const CustomerPurchaseScheduleDateChangeScalarFieldEnum = {
+  id: 'id',
+  purchaseId: 'purchaseId',
+  fromInstallmentNo: 'fromInstallmentNo',
+  firstDueDate: 'firstDueDate',
+  createdAt: 'createdAt'
+} as const
+
+export type CustomerPurchaseScheduleDateChangeScalarFieldEnum = (typeof CustomerPurchaseScheduleDateChangeScalarFieldEnum)[keyof typeof CustomerPurchaseScheduleDateChangeScalarFieldEnum]
 
 
 export const CustomerPurchaseRateChangeScalarFieldEnum = {
@@ -1755,7 +1927,9 @@ export type GlobalOmitConfig = {
   admin?: Prisma.AdminOmit
   customer?: Prisma.CustomerOmit
   customerRateChange?: Prisma.CustomerRateChangeOmit
+  customerScheduleDateChange?: Prisma.CustomerScheduleDateChangeOmit
   customerPurchase?: Prisma.CustomerPurchaseOmit
+  customerPurchaseScheduleDateChange?: Prisma.CustomerPurchaseScheduleDateChangeOmit
   customerPurchaseRateChange?: Prisma.CustomerPurchaseRateChangeOmit
   customerPurchaseItem?: Prisma.CustomerPurchaseItemOmit
   customerItem?: Prisma.CustomerItemOmit

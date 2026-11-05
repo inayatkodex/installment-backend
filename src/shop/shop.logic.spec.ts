@@ -45,6 +45,35 @@ describe('installment schedule', () => {
     expect(rows.map((row) => row.expected)).toEqual([2000, 2000, 3000, 3000]);
   });
 
+  it('applies a March payment to the oldest late installment before March due', () => {
+    const schedulePlan = plan({
+      items: [{ price: 3000 }],
+      downPayment: 0,
+      initialMonthlyPayment: 1000,
+      firstDueDate: '2026-01-01',
+    });
+    const before = buildSchedule(schedulePlan, '2026-03-01');
+    const after = buildSchedule(
+      {
+        ...schedulePlan,
+        payments: [
+          {
+            amount: 1000,
+            paidOn: new Date('2026-03-01T10:00:00Z'),
+            method: 'Cash',
+            note: null,
+          },
+        ],
+      },
+      '2026-03-01',
+    );
+
+    expect(before.filter((row) => row.status === 'overdue')).toHaveLength(2);
+    expect(after.map((row) => row.paid)).toEqual([1000, 0, 0]);
+    expect(after.filter((row) => row.status === 'overdue')).toHaveLength(1);
+    expect(after[2].status).toBe('pending');
+  });
+
   it('keeps the original and intervening rates when later rates are added', () => {
     const rows = buildSchedule(
       plan({
@@ -83,6 +112,41 @@ describe('installment schedule', () => {
 
     expect(rows.map((row) => row.expected)).toEqual([2000, 3000, 3000, 2000]);
     expect(rows[0].paid).toBe(500);
+  });
+
+  it('keeps paid dates unchanged when rescheduling and reports late receipt days', () => {
+    const rows = buildSchedule(
+      plan({
+        items: [{ price: 10400 }],
+        downPayment: 400,
+        firstDueDate: '2027-10-20',
+        scheduleDateChanges: [
+          { fromInstallmentNo: 2, firstDueDate: '2027-11-10' },
+        ],
+        payments: [
+          {
+            amount: 2000,
+            paidOn: new Date('2027-10-30T12:00:00Z'),
+            method: 'Cash',
+            note: null,
+          },
+        ],
+      }),
+      '2027-11-03',
+    );
+
+    expect(rows[0]).toMatchObject({
+      dueDate: '2027-10-20',
+      paid: 2000,
+      status: 'paid',
+      daysLate: 10,
+    });
+    expect(rows[1]).toMatchObject({
+      dueDate: '2027-11-10',
+      status: 'pending',
+      daysLate: 0,
+    });
+    expect(combineInstallmentSchedules([rows])[0].daysLate).toBe(10);
   });
 
   it('rejects plans that would exceed the schedule limit', () => {
@@ -352,5 +416,36 @@ describe('multiple purchase plan allocation', () => {
     expect(schedules[0][1].paid).toBe(7500);
     expect(schedules[1][0].paid).toBe(3000);
     expect(schedules[0][1].dueDate).toBe(schedules[1][0].dueDate);
+  });
+
+  it('applies purchase date changes from the first unpaid installment only', () => {
+    const datedPlan = {
+      ...plans[0],
+      scheduleDateChanges: [
+        { fromInstallmentNo: 2, firstDueDate: '2026-12-10' },
+      ],
+    };
+    const schedules = buildMultiPlanSchedules(
+      [datedPlan],
+      [
+        {
+          amount: 7500,
+          paidOn: new Date('2026-11-30T12:00:00Z'),
+          createdAt: new Date('2026-11-30T12:00:00Z'),
+          method: 'Cash',
+          note: null,
+        },
+      ],
+      '2026-11-25',
+      '2026-12-01',
+    );
+
+    expect(schedules[0][0]).toMatchObject({
+      dueDate: '2026-11-25',
+      status: 'paid',
+      daysLate: 5,
+    });
+    expect(schedules[0][1].dueDate).toBe('2026-12-10');
+    expect(schedules[0][2].dueDate).toBe('2027-01-10');
   });
 });

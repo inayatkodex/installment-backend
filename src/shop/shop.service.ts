@@ -45,10 +45,12 @@ const FULL = {
   items: true,
   payments: { orderBy: [{ paidOn: 'asc' }, { createdAt: 'asc' }] },
   rateChanges: { orderBy: { fromInstallmentNo: 'asc' } },
+  scheduleDateChanges: { orderBy: { fromInstallmentNo: 'asc' } },
   purchases: {
     include: {
       items: true,
       rateChanges: { orderBy: { fromInstallmentNo: 'asc' } },
+      scheduleDateChanges: { orderBy: { fromInstallmentNo: 'asc' } },
     },
     orderBy: { createdAt: 'asc' },
   },
@@ -68,6 +70,7 @@ const LEAN_SELECT = {
   firstDueDate: true,
   createdAt: true,
   rateChanges: { orderBy: { fromInstallmentNo: 'asc' } },
+  scheduleDateChanges: { orderBy: { fromInstallmentNo: 'asc' } },
   items: {
     select: {
       id: true,
@@ -98,6 +101,7 @@ const LEAN_SELECT = {
       allocationStartInstallmentNo: true,
       createdAt: true,
       rateChanges: { orderBy: { fromInstallmentNo: 'asc' } },
+      scheduleDateChanges: { orderBy: { fromInstallmentNo: 'asc' } },
       items: {
         select: {
           id: true,
@@ -116,7 +120,14 @@ type CustomerFull = Prisma.CustomerGetPayload<{
     items: true;
     payments: true;
     rateChanges: true;
-    purchases: { include: { items: true; rateChanges: true } };
+    scheduleDateChanges: true;
+    purchases: {
+      include: {
+        items: true;
+        rateChanges: true;
+        scheduleDateChanges: true;
+      };
+    };
   };
 }>;
 
@@ -347,7 +358,8 @@ export class ShopService {
         },
       });
       if (existing) {
-        return ok({ ok: true });
+        const customer = await this.findFull(shopId, existing.customerId);
+        return ok(this.paymentReceipt(customer, existing, todayIso()));
       }
     }
 
@@ -361,7 +373,16 @@ export class ShopService {
           },
         });
         if (existingTx) {
-          return ok({ ok: true });
+          const customer = await tx.customer.findFirst({
+            where: {
+              id: existingTx.customerId,
+              shopId,
+              deletedAt: null,
+            },
+            include: FULL,
+          });
+          if (!customer) throw new NotFoundException('Customer nahi mila');
+          return ok(this.paymentReceipt(customer, existingTx, todayIso()));
         }
       }
 
@@ -413,6 +434,7 @@ export class ShopService {
           idempotencyKey: trimmedKey,
         },
       });
+      const receipt = this.paymentReceipt(c, payment, todayIso());
 
       // Write audit log inside the same transaction
       await this.audit.recordWithTx(tx, {
@@ -426,13 +448,14 @@ export class ShopService {
           customerName: c.name,
           amount: dto.amount,
           remainingAfter: financial.remaining - dto.amount,
+          allocations: receipt.allocations,
           idempotencyKey: trimmedKey,
         },
         ipAddress: meta?.ip,
         userAgent: meta?.userAgent,
       });
 
-      return ok({ ok: true });
+      return ok(receipt);
     });
   }
 
@@ -737,19 +760,56 @@ export class ShopService {
   ) {
     if (!isRealDate(firstDueDate)) {
       throw new BadRequestException(
-        'Plan ki pehli qist ki tareekh sahi likhein',
+        'Plan ki agli baqi qist ki tareekh sahi likhein',
       );
     }
 
-    const result = await this.prisma.customerPurchase.updateMany({
-      where: {
-        id: purchaseId,
-        customerId,
-        customer: { shopId, deletedAt: null },
-      },
-      data: { firstDueDate },
+    await this.prisma.$transaction(async (tx) => {
+      const locked = await tx.$queryRaw<{ id: string }[]>`
+        SELECT id FROM "customers"
+        WHERE id = ${customerId} AND "shopId" = ${shopId} AND "deletedAt" IS NULL
+        FOR UPDATE
+      `;
+      if (!locked.length) throw new NotFoundException('Customer nahi mila');
+
+      const customer = await tx.customer.findFirst({
+        where: { id: customerId, shopId, deletedAt: null },
+        include: FULL,
+      });
+      if (!customer) throw new NotFoundException('Customer nahi mila');
+
+      const plan = this.financialOf(customer, todayIso()).plans.find(
+        (item) => item.id === purchaseId,
+      );
+      if (!plan) throw new NotFoundException('Plan nahi mila');
+
+      const current = plan.rows.find((row) => row.status !== 'paid');
+      if (!current) {
+        const purchase = customer.purchases.find(
+          (item) => item.id === purchaseId,
+        );
+        if (purchase?.firstDueDate === firstDueDate) return;
+        throw new BadRequestException(
+          'Mukammal plan ki qist ki tareekh tabdeel nahi ho sakti',
+        );
+      }
+      if (current.dueDate === firstDueDate) return;
+
+      await tx.customerPurchaseScheduleDateChange.upsert({
+        where: {
+          purchaseId_fromInstallmentNo: {
+            purchaseId,
+            fromInstallmentNo: current.no,
+          },
+        },
+        create: {
+          purchaseId,
+          fromInstallmentNo: current.no,
+          firstDueDate,
+        },
+        update: { firstDueDate },
+      });
     });
-    if (!result.count) throw new NotFoundException('Plan nahi mila');
 
     return ok(await this.detailOf(await this.findFull(shopId, customerId)));
   }
@@ -991,7 +1051,7 @@ export class ShopService {
   /* ================= 9. CUSTOMER EDIT ================= */
   async updateCustomer(shopId: string, id: string, dto: UpdateCustomerDto) {
     if (dto.firstDueDate !== undefined && !isRealDate(dto.firstDueDate)) {
-      throw new BadRequestException('Pehli qist ki tareekh sahi likhein');
+      throw new BadRequestException('Agli baqi qist ki tareekh sahi likhein');
     }
 
     const data: Prisma.CustomerUpdateManyMutationInput = {};
@@ -1000,7 +1060,6 @@ export class ShopService {
     if (dto.phone !== undefined) data.phone = digits(dto.phone);
     if (dto.cnic !== undefined) data.cnic = clean(dto.cnic);
     if (dto.address !== undefined) data.address = clean(dto.address);
-    if (dto.firstDueDate !== undefined) data.firstDueDate = dto.firstDueDate;
     if (dto.photo !== undefined) {
       data.photo = await this.storage.saveBase64(dto.photo, 'customers');
     }
@@ -1023,6 +1082,15 @@ export class ShopService {
             FOR UPDATE
           `;
           if (!locked.length) throw new NotFoundException('Customer nahi mila');
+
+          if (dto.firstDueDate !== undefined) {
+            const customer = await tx.customer.findFirst({
+              where: { id, shopId, deletedAt: null },
+              include: FULL,
+            });
+            if (!customer) throw new NotFoundException('Customer nahi mila');
+            await this.saveBaseScheduleDate(tx, customer, dto.firstDueDate);
+          }
 
           const result = await tx.customer.updateMany({
             where: { id, shopId, deletedAt: null },
@@ -1106,6 +1174,10 @@ export class ShopService {
             throw new BadRequestException('Qiston ka schedule bohat lamba hai');
           }
 
+          if (dto.firstDueDate !== undefined) {
+            await this.saveBaseScheduleDate(tx, customer, dto.firstDueDate);
+          }
+
           const result = await tx.customer.updateMany({
             where: { id, shopId, deletedAt: null },
             data: { ...data, monthlyPayment: newMonthlyPayment },
@@ -1131,10 +1203,35 @@ export class ShopService {
       }
     }
 
-    const result = await this.prisma.customer.updateMany({
-      where: { id, shopId, deletedAt: null },
-      data,
-    });
+    const firstDueDate = dto.firstDueDate;
+    let result: Prisma.BatchPayload;
+    if (firstDueDate !== undefined) {
+      result = await this.prisma.$transaction(async (tx) => {
+        const locked = await tx.$queryRaw<{ id: string }[]>`
+          SELECT id FROM "customers"
+          WHERE id = ${id} AND "shopId" = ${shopId} AND "deletedAt" IS NULL
+          FOR UPDATE
+        `;
+        if (!locked.length) throw new NotFoundException('Customer nahi mila');
+
+        const customer = await tx.customer.findFirst({
+          where: { id, shopId, deletedAt: null },
+          include: FULL,
+        });
+        if (!customer) throw new NotFoundException('Customer nahi mila');
+        await this.saveBaseScheduleDate(tx, customer, firstDueDate);
+
+        return tx.customer.updateMany({
+          where: { id, shopId, deletedAt: null },
+          data,
+        });
+      });
+    } else {
+      result = await this.prisma.customer.updateMany({
+        where: { id, shopId, deletedAt: null },
+        data,
+      });
+    }
     if (!result.count) throw new NotFoundException('Customer nahi mila');
 
     return ok(await this.detailOf(await this.findFull(shopId, id)));
@@ -1299,12 +1396,44 @@ export class ShopService {
     return field;
   }
 
+  private async saveBaseScheduleDate(
+    tx: Prisma.TransactionClient,
+    customer: CustomerFull,
+    firstDueDate: string,
+  ) {
+    const currentPlan = this.financialOf(customer, todayIso()).plans[0];
+    const current = currentPlan?.rows.find((row) => row.status !== 'paid');
+    if (!current) {
+      if (customer.firstDueDate === firstDueDate) return;
+      throw new BadRequestException(
+        'Mukammal plan ki qist ki tareekh tabdeel nahi ho sakti',
+      );
+    }
+    if (current.dueDate === firstDueDate) return;
+
+    await tx.customerScheduleDateChange.upsert({
+      where: {
+        customerId_fromInstallmentNo: {
+          customerId: customer.id,
+          fromInstallmentNo: current.no,
+        },
+      },
+      create: {
+        customerId: customer.id,
+        fromInstallmentNo: current.no,
+        firstDueDate,
+      },
+      update: { firstDueDate },
+    });
+  }
+
   private plan(c: CustomerRecord): PlanInput {
     return {
       items: c.items,
       downPayment: c.downPayment,
       initialMonthlyPayment: c.initialMonthlyPayment,
       firstDueDate: c.firstDueDate,
+      scheduleDateChanges: c.scheduleDateChanges,
       rateChanges: c.rateChanges,
       payments: [],
     };
@@ -1325,6 +1454,7 @@ export class ShopService {
         downPayment: c.downPayment,
         initialMonthlyPayment: c.initialMonthlyPayment,
         firstDueDate: c.firstDueDate,
+        scheduleDateChanges: c.scheduleDateChanges,
         rateChanges: baseRateChanges,
         createdAt: c.createdAt,
       },
@@ -1349,6 +1479,7 @@ export class ShopService {
           c.firstDueDate,
           purchase.allocationStartInstallmentNo - 1,
         ),
+        scheduleDateChanges: purchase.scheduleDateChanges,
         rateChanges: purchase.rateChanges,
         createdAt: purchase.createdAt,
       })),
@@ -1409,7 +1540,7 @@ export class ShopService {
     const status: CustomerStatus =
       remaining <= 0
         ? 'completed'
-        : rows.some((row) => row.daysLate > 0)
+        : rows.some((row) => row.status !== 'paid' && row.daysLate > 0)
           ? 'overdue'
           : 'active';
 
@@ -1464,7 +1595,9 @@ export class ShopService {
         : financial.plans.flatMap((plan) =>
             plan.rows.map((row) => ({ ...row, planId: plan.id })),
           );
-    const lateRows = rows.filter((row) => row.daysLate > 0);
+    const lateRows = rows.filter(
+      (row) => row.status !== 'paid' && row.daysLate > 0,
+    );
     const next =
       financial.plans.length === 1
         ? (rows.find(
@@ -1496,7 +1629,7 @@ export class ShopService {
       })),
       plans: financial.plans.map((plan) => ({
         id: plan.id,
-        label: plan.label,
+        label: financial.plans.length > 1 ? plan.label : undefined,
         total: plan.total,
         paid: plan.paid,
         remaining: plan.remaining,
@@ -1540,6 +1673,74 @@ export class ShopService {
     };
   }
 
+  private paymentReceipt(
+    customer: CustomerFull,
+    payment: CustomerFull['payments'][number],
+    today: string,
+  ) {
+    const orderedPayments = [
+      ...customer.payments.filter((item) => item.id !== payment.id),
+      payment,
+    ]
+      .filter(
+        (item) =>
+          !item.reversedAt ||
+          item.id === payment.id,
+      )
+      .sort(
+        (left, right) =>
+          left.paidOn.getTime() - right.paidOn.getTime() ||
+          left.createdAt.getTime() - right.createdAt.getTime(),
+      );
+    const paymentIndex = orderedPayments.findIndex(
+      (item) => item.id === payment.id,
+    );
+    const precedingPayments = orderedPayments.slice(0, paymentIndex);
+    const paymentForAllocation = { ...payment, reversedAt: null };
+    const before = this.financialOf(
+      { ...customer, payments: precedingPayments },
+      today,
+    );
+    const after = this.financialOf(
+      {
+        ...customer,
+        payments: [...precedingPayments, paymentForAllocation],
+      },
+      today,
+    );
+    const allocations = after.plans.flatMap((plan, planIndex) => {
+      const previousPlan = before.plans[planIndex];
+      return plan.rows.flatMap((row, rowIndex) => {
+        const amount = row.paid - (previousPlan?.rows[rowIndex]?.paid ?? 0);
+        return amount > 0
+          ? [
+              {
+                ...(customer.purchases.length > 0
+                  ? { planLabel: plan.label }
+                  : {}),
+                installmentNo: row.no,
+                dueDate: row.dueDate,
+                amount,
+              },
+            ]
+          : [];
+      });
+    });
+    const remainingLateRows = combineInstallmentSchedules(
+      after.plans.map((plan) => plan.rows),
+    ).filter((row) => row.status !== 'paid' && row.daysLate > 0);
+
+    return {
+      ok: true,
+      allocations,
+      remainingLateCount: remainingLateRows.length,
+      remainingLateAmount: remainingLateRows.reduce(
+        (sum, row) => sum + row.expected - row.paid,
+        0,
+      ),
+    };
+  }
+
   private collectionOf(customers: CustomerRecord[], today: string) {
     const out: {
       id: string;
@@ -1552,12 +1753,16 @@ export class ShopService {
       expected: number;
       paid: number;
       status: 'paid' | 'pending' | 'partial';
+      overdueInstallmentCount: number;
     }[] = [];
 
     for (const c of customers) {
       const plans = this.financialOf(c, today).plans;
       if (!plans[0]?.firstDueDate) continue;
       const rows = combineInstallmentSchedules(plans.map((plan) => plan.rows));
+      const overdueInstallmentCount = rows.filter(
+        (row) => row.status !== 'paid' && row.daysLate > 0,
+      ).length;
       for (const row of rows) {
         if (row.dueDate !== today) continue;
         out.push({
@@ -1571,6 +1776,7 @@ export class ShopService {
           expected: row.expected,
           paid: row.paid,
           status: row.status === 'overdue' ? 'pending' : row.status,
+          overdueInstallmentCount,
         });
       }
     }
@@ -1596,7 +1802,7 @@ export class ShopService {
       const plans = this.financialOf(c, today).plans;
       const rows = plans[0]?.firstDueDate
         ? combineInstallmentSchedules(plans.map((plan) => plan.rows)).filter(
-            (r) => r.daysLate > 0,
+            (r) => r.status !== 'paid' && r.daysLate > 0,
           )
         : [];
       if (!rows.length) continue;
@@ -1647,7 +1853,7 @@ export class ShopService {
       received,
       remaining: expected - received,
       overdue: rows
-        .filter((r) => r.daysLate > 0)
+        .filter((r) => r.status !== 'paid' && r.daysLate > 0)
         .reduce((s, r) => s + r.expected - r.paid, 0),
       collectedPercent: expected ? Math.round((received / expected) * 100) : 0,
       totalCustomers: customers.length,
@@ -1664,7 +1870,9 @@ export class ShopService {
             (sum, row) => sum + row.paid,
             0,
           );
-          const lateRows = customerMonthRows.filter((row) => row.daysLate > 0);
+          const lateRows = customerMonthRows.filter(
+            (row) => row.status !== 'paid' && row.daysLate > 0,
+          );
           return {
             customerId: customer.id,
             name: customer.name,

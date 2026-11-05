@@ -43,10 +43,20 @@ export type Customer = Prisma.CustomerModel
  */
 export type CustomerRateChange = Prisma.CustomerRateChangeModel
 /**
+ * Model CustomerScheduleDateChange
+ * 
+ */
+export type CustomerScheduleDateChange = Prisma.CustomerScheduleDateChangeModel
+/**
  * Model CustomerPurchase
  * 
  */
 export type CustomerPurchase = Prisma.CustomerPurchaseModel
+/**
+ * Model CustomerPurchaseScheduleDateChange
+ * 
+ */
+export type CustomerPurchaseScheduleDateChange = Prisma.CustomerPurchaseScheduleDateChangeModel
 /**
  * Model CustomerPurchaseRateChange
  * 

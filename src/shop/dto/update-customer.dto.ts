@@ -36,10 +36,14 @@ export class UpdateCustomerDto {
   @IsString()
   address?: string;
 
-  @ApiPropertyOptional({ example: '2026-11-28' })
+  @ApiPropertyOptional({
+    example: '2026-11-28',
+    description:
+      'Agli unpaid qist ki tareekh; pehle se paid qiston ki tareekhein nahi badlengi',
+  })
   @IsOptional()
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
-    message: 'Pehli qist ki tareekh sahi likhein',
+    message: 'Agli baqi qist ki tareekh sahi likhein',
   })
   firstDueDate?: string;
 
