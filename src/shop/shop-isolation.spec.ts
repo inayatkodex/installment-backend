@@ -12,6 +12,7 @@ import { ShopGuard } from '../common/guards/shop.guard';
 import { AuditModule } from '../common/audit/audit.module';
 import { DeletionCleanupService } from '../common/deletion-cleanup.service';
 import { AdminService } from '../admin/admin.service';
+import { currentMonth, nextMonth } from '../admin/admin.utils';
 import { StorageModule } from '../common/storage/storage.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PrismaService } from '../prisma/prisma.service';
@@ -203,6 +204,63 @@ describe('Shop Data Isolation & Authorization Guards (PostgreSQL Integration)', 
     if (module) await module.close();
   });
 
+  describe('Per-shop monthly fee configuration', () => {
+    it('sets fees for every shop status and applies later changes next month', async () => {
+      for (const status of [
+        'pending',
+        'active',
+        'inactive',
+        'archived',
+      ] as const) {
+        const shop = await prisma.shop.create({
+          data: {
+            shopName: `Fee ${status} shop`,
+            ownerName: 'Fee Test Owner',
+            mobile: `0377${Math.floor(1000000 + Math.random() * 9000000)}`,
+            cnic: `35202-${Math.floor(1000000 + Math.random() * 9000000)}-1`,
+            city: 'Lahore',
+            address: 'Fee Test Street',
+            passwordHash: 'hash',
+            status,
+          },
+        });
+
+        try {
+          const firstSet = await adminService.setMonthlyFee(
+            shop.id,
+            4000,
+            'test-admin',
+          );
+          expect(firstSet.data.monthlyFee).toBe(4000);
+          await expect(
+            prisma.shopFeeRate.findUnique({
+              where: {
+                shopId_effectiveFromMonth: {
+                  shopId: shop.id,
+                  effectiveFromMonth: currentMonth(),
+                },
+              },
+            }),
+          ).resolves.toMatchObject({ amount: 4000 });
+
+          const changed = await adminService.setMonthlyFee(
+            shop.id,
+            6000,
+            'test-admin',
+          );
+          expect(changed.data.monthlyFee).toBe(4000);
+          expect(changed.data.nextMonthlyFee).toBe(6000);
+          expect(changed.data.feeChangeEffectiveMonth).toBe(
+            nextMonth(currentMonth()),
+          );
+          expect(changed.data.status).toBe(status);
+        } finally {
+          await prisma.shop.delete({ where: { id: shop.id } });
+        }
+      }
+    });
+  });
+
   describe('1. Cross-Shop Data Isolation', () => {
     it('Shop B cannot view Customer A details', async () => {
       await expect(
@@ -234,7 +292,7 @@ describe('Shop Data Isolation & Authorization Guards (PostgreSQL Integration)', 
         );
       });
 
-      it('restores the original shop status within 24 hours', async () => {
+      it('restores the original shop status within seven days', async () => {
         await adminService.undoDeleteShop(deletableShopId, 'test-admin');
         const restored = await prisma.shop.findUniqueOrThrow({
           where: { id: deletableShopId },
@@ -244,14 +302,23 @@ describe('Shop Data Isolation & Authorization Guards (PostgreSQL Integration)', 
         expect(restored.deletionPreviousStatus).toBeNull();
       });
 
-      it('permanently deletes the shop and cascaded data after expiry', async () => {
+      it('rejects restore and permanently deletes the shop after seven days', async () => {
         await adminService.deleteShop(deletableShopId, 'test-admin');
         await prisma.shop.update({
           where: { id: deletableShopId },
           data: {
-            pendingDeletionAt: new Date(Date.now() - 25 * 60 * 60 * 1000),
+            pendingDeletionAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000),
           },
         });
+        await expect(
+          adminService.undoDeleteShop(deletableShopId, 'test-admin'),
+        ).rejects.toThrow(BadRequestException);
+        const pending = await adminService.listPendingDeletion();
+        expect(pending.data).not.toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ id: deletableShopId }),
+          ]),
+        );
         await deletionCleanup.runCleanupNow();
 
         await expect(

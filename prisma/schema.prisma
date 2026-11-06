@@ -36,7 +36,7 @@ model Shop {
   pendingDeletionAt      DateTime?
   deletionPreviousStatus ShopStatus?
   tokenVersion           Int         @default(0)
-  monthlyFee             Int         @default(2500)
+  monthlyFee             Int         @default(0)
   customerSeq            Int         @default(0)
 
   profilePic      String? @db.Text
@@ -46,6 +46,7 @@ model Shop {
   docShopDocument String? @db.Text
 
   feeRecords             FeeRecord[]
+  feeRates               ShopFeeRate[]
   customers              Customer[]
   monthlyReportSnapshots MonthlyReportSnapshot[]
 
@@ -63,6 +64,7 @@ model FeeRecord {
   shopId    String
   shop      Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
   month     String // "YYYY-MM"
+  amount    Int       @default(0)
   status    FeeStatus @default(unpaid)
   paidOn    DateTime?
   method    String?
@@ -72,6 +74,19 @@ model FeeRecord {
   @@unique([shopId, month])
   @@index([month, status])
   @@map("fee_records")
+}
+
+model ShopFeeRate {
+  id                 String   @id @default(uuid())
+  shopId             String
+  shop               Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  amount             Int
+  effectiveFromMonth String
+  createdAt          DateTime @default(now())
+
+  @@unique([shopId, effectiveFromMonth])
+  @@index([effectiveFromMonth])
+  @@map("shop_fee_rates")
 }
 
 model Admin {

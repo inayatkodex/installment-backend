@@ -10,6 +10,7 @@
  */
 export type * from './models/Shop.js'
 export type * from './models/FeeRecord.js'
+export type * from './models/ShopFeeRate.js'
 export type * from './models/Admin.js'
 export type * from './models/Customer.js'
 export type * from './models/MonthlyReportSnapshot.js'

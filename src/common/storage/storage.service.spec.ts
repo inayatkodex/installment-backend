@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { StorageService } from './storage.service';
 import { existsSync } from 'fs';
 import { resolve } from 'path';
+import { BadRequestException } from '@nestjs/common';
 
 describe('StorageService (Phase 2 Image Storage Optimization)', () => {
   let service: StorageService;
@@ -21,12 +22,13 @@ describe('StorageService (Phase 2 Image Storage Optimization)', () => {
     expect(await service.saveBase64('')).toBeNull();
   });
 
-  it('should pass-through existing HTTP or /uploads URLs without re-saving', async () => {
-    const url = 'https://example.com/photo.jpg';
-    expect(await service.saveBase64(url)).toBe(url);
-
-    const relative = '/uploads/customers/existing.jpg';
-    expect(await service.saveBase64(relative)).toBe(relative);
+  it('rejects non-data URLs instead of storing an arbitrary path', async () => {
+    await expect(
+      service.saveBase64('/uploads/customers/existing.jpg'),
+    ).rejects.toThrow(BadRequestException);
+    await expect(
+      service.saveBase64('https://example.com/photo.jpg'),
+    ).rejects.toThrow(BadRequestException);
   });
 
   it('should decode a base64 JPEG and save to local disk under uploads/', async () => {
@@ -60,6 +62,44 @@ describe('StorageService (Phase 2 Image Storage Optimization)', () => {
     // Clean up
     await service.deleteFile(savedUrl);
     expect(existsSync(diskPath)).toBe(false);
+  });
+
+  it('should accept WebP only when its RIFF/WEBP signature is present', async () => {
+    const webpHeader = Buffer.alloc(12);
+    webpHeader.write('RIFF', 0, 'ascii');
+    webpHeader.write('WEBP', 8, 'ascii');
+    const savedUrl = await service.saveBase64(
+      `data:image/webp;base64,${webpHeader.toString('base64')}`,
+      'items',
+    );
+    expect(savedUrl).toMatch(/^\/uploads\/items\/[a-f0-9-]+\.webp$/);
+    await service.deleteFile(savedUrl);
+  });
+
+  it('rejects unsupported MIME types, malformed base64, and mismatched signatures', async () => {
+    await expect(
+      service.saveBase64('data:image/gif;base64,R0lGODlh'),
+    ).rejects.toThrow(BadRequestException);
+    await expect(
+      service.saveBase64('data:application/pdf;base64,JVBERi0='),
+    ).rejects.toThrow(BadRequestException);
+    await expect(
+      service.saveBase64('data:image/png;base64,not-base64!'),
+    ).rejects.toThrow(BadRequestException);
+    await expect(
+      service.saveBase64('data:image/png;base64,/9j/'),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('rejects decoded images larger than 5 MB', async () => {
+    const oversizedImage = Buffer.concat([
+      Buffer.from([0xff, 0xd8, 0xff]),
+      Buffer.alloc(5 * 1024 * 1024),
+    ]).toString('base64');
+
+    await expect(
+      service.saveBase64(`data:image/jpeg;base64,${oversizedImage}`),
+    ).rejects.toThrow(BadRequestException);
   });
 
   it('should prevent path traversal attacks when deleting files', async () => {

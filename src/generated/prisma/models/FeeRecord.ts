@@ -20,14 +20,25 @@ export type FeeRecordModel = runtime.Types.Result.DefaultSelection<Prisma.$FeeRe
 
 export type AggregateFeeRecord = {
   _count: FeeRecordCountAggregateOutputType | null
+  _avg: FeeRecordAvgAggregateOutputType | null
+  _sum: FeeRecordSumAggregateOutputType | null
   _min: FeeRecordMinAggregateOutputType | null
   _max: FeeRecordMaxAggregateOutputType | null
+}
+
+export type FeeRecordAvgAggregateOutputType = {
+  amount: number | null
+}
+
+export type FeeRecordSumAggregateOutputType = {
+  amount: number | null
 }
 
 export type FeeRecordMinAggregateOutputType = {
   id: string | null
   shopId: string | null
   month: string | null
+  amount: number | null
   status: $Enums.FeeStatus | null
   paidOn: Date | null
   method: string | null
@@ -39,6 +50,7 @@ export type FeeRecordMaxAggregateOutputType = {
   id: string | null
   shopId: string | null
   month: string | null
+  amount: number | null
   status: $Enums.FeeStatus | null
   paidOn: Date | null
   method: string | null
@@ -50,6 +62,7 @@ export type FeeRecordCountAggregateOutputType = {
   id: number
   shopId: number
   month: number
+  amount: number
   status: number
   paidOn: number
   method: number
@@ -59,10 +72,19 @@ export type FeeRecordCountAggregateOutputType = {
 }
 
 
+export type FeeRecordAvgAggregateInputType = {
+  amount?: true
+}
+
+export type FeeRecordSumAggregateInputType = {
+  amount?: true
+}
+
 export type FeeRecordMinAggregateInputType = {
   id?: true
   shopId?: true
   month?: true
+  amount?: true
   status?: true
   paidOn?: true
   method?: true
@@ -74,6 +96,7 @@ export type FeeRecordMaxAggregateInputType = {
   id?: true
   shopId?: true
   month?: true
+  amount?: true
   status?: true
   paidOn?: true
   method?: true
@@ -85,6 +108,7 @@ export type FeeRecordCountAggregateInputType = {
   id?: true
   shopId?: true
   month?: true
+  amount?: true
   status?: true
   paidOn?: true
   method?: true
@@ -131,6 +155,18 @@ export type FeeRecordAggregateArgs<ExtArgs extends runtime.Types.Extensions.Inte
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: FeeRecordAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: FeeRecordSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: FeeRecordMinAggregateInputType
@@ -161,6 +197,8 @@ export type FeeRecordGroupByArgs<ExtArgs extends runtime.Types.Extensions.Intern
   take?: number
   skip?: number
   _count?: FeeRecordCountAggregateInputType | true
+  _avg?: FeeRecordAvgAggregateInputType
+  _sum?: FeeRecordSumAggregateInputType
   _min?: FeeRecordMinAggregateInputType
   _max?: FeeRecordMaxAggregateInputType
 }
@@ -169,12 +207,15 @@ export type FeeRecordGroupByOutputType = {
   id: string
   shopId: string
   month: string
+  amount: number
   status: $Enums.FeeStatus
   paidOn: Date | null
   method: string | null
   createdAt: Date
   updatedAt: Date
   _count: FeeRecordCountAggregateOutputType | null
+  _avg: FeeRecordAvgAggregateOutputType | null
+  _sum: FeeRecordSumAggregateOutputType | null
   _min: FeeRecordMinAggregateOutputType | null
   _max: FeeRecordMaxAggregateOutputType | null
 }
@@ -201,6 +242,7 @@ export type FeeRecordWhereInput = {
   id?: Prisma.StringFilter<"FeeRecord"> | string
   shopId?: Prisma.StringFilter<"FeeRecord"> | string
   month?: Prisma.StringFilter<"FeeRecord"> | string
+  amount?: Prisma.IntFilter<"FeeRecord"> | number
   status?: Prisma.EnumFeeStatusFilter<"FeeRecord"> | $Enums.FeeStatus
   paidOn?: Prisma.DateTimeNullableFilter<"FeeRecord"> | Date | string | null
   method?: Prisma.StringNullableFilter<"FeeRecord"> | string | null
@@ -213,6 +255,7 @@ export type FeeRecordOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   shopId?: Prisma.SortOrder
   month?: Prisma.SortOrder
+  amount?: Prisma.SortOrder
   status?: Prisma.SortOrder
   paidOn?: Prisma.SortOrderInput | Prisma.SortOrder
   method?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -229,6 +272,7 @@ export type FeeRecordWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.FeeRecordWhereInput | Prisma.FeeRecordWhereInput[]
   shopId?: Prisma.StringFilter<"FeeRecord"> | string
   month?: Prisma.StringFilter<"FeeRecord"> | string
+  amount?: Prisma.IntFilter<"FeeRecord"> | number
   status?: Prisma.EnumFeeStatusFilter<"FeeRecord"> | $Enums.FeeStatus
   paidOn?: Prisma.DateTimeNullableFilter<"FeeRecord"> | Date | string | null
   method?: Prisma.StringNullableFilter<"FeeRecord"> | string | null
@@ -241,14 +285,17 @@ export type FeeRecordOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   shopId?: Prisma.SortOrder
   month?: Prisma.SortOrder
+  amount?: Prisma.SortOrder
   status?: Prisma.SortOrder
   paidOn?: Prisma.SortOrderInput | Prisma.SortOrder
   method?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.FeeRecordCountOrderByAggregateInput
+  _avg?: Prisma.FeeRecordAvgOrderByAggregateInput
   _max?: Prisma.FeeRecordMaxOrderByAggregateInput
   _min?: Prisma.FeeRecordMinOrderByAggregateInput
+  _sum?: Prisma.FeeRecordSumOrderByAggregateInput
 }
 
 export type FeeRecordScalarWhereWithAggregatesInput = {
@@ -258,6 +305,7 @@ export type FeeRecordScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"FeeRecord"> | string
   shopId?: Prisma.StringWithAggregatesFilter<"FeeRecord"> | string
   month?: Prisma.StringWithAggregatesFilter<"FeeRecord"> | string
+  amount?: Prisma.IntWithAggregatesFilter<"FeeRecord"> | number
   status?: Prisma.EnumFeeStatusWithAggregatesFilter<"FeeRecord"> | $Enums.FeeStatus
   paidOn?: Prisma.DateTimeNullableWithAggregatesFilter<"FeeRecord"> | Date | string | null
   method?: Prisma.StringNullableWithAggregatesFilter<"FeeRecord"> | string | null
@@ -268,6 +316,7 @@ export type FeeRecordScalarWhereWithAggregatesInput = {
 export type FeeRecordCreateInput = {
   id?: string
   month: string
+  amount?: number
   status?: $Enums.FeeStatus
   paidOn?: Date | string | null
   method?: string | null
@@ -280,6 +329,7 @@ export type FeeRecordUncheckedCreateInput = {
   id?: string
   shopId: string
   month: string
+  amount?: number
   status?: $Enums.FeeStatus
   paidOn?: Date | string | null
   method?: string | null
@@ -290,6 +340,7 @@ export type FeeRecordUncheckedCreateInput = {
 export type FeeRecordUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   month?: Prisma.StringFieldUpdateOperationsInput | string
+  amount?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumFeeStatusFieldUpdateOperationsInput | $Enums.FeeStatus
   paidOn?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   method?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -302,6 +353,7 @@ export type FeeRecordUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   shopId?: Prisma.StringFieldUpdateOperationsInput | string
   month?: Prisma.StringFieldUpdateOperationsInput | string
+  amount?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumFeeStatusFieldUpdateOperationsInput | $Enums.FeeStatus
   paidOn?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   method?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -313,6 +365,7 @@ export type FeeRecordCreateManyInput = {
   id?: string
   shopId: string
   month: string
+  amount?: number
   status?: $Enums.FeeStatus
   paidOn?: Date | string | null
   method?: string | null
@@ -323,6 +376,7 @@ export type FeeRecordCreateManyInput = {
 export type FeeRecordUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   month?: Prisma.StringFieldUpdateOperationsInput | string
+  amount?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumFeeStatusFieldUpdateOperationsInput | $Enums.FeeStatus
   paidOn?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   method?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -334,6 +388,7 @@ export type FeeRecordUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   shopId?: Prisma.StringFieldUpdateOperationsInput | string
   month?: Prisma.StringFieldUpdateOperationsInput | string
+  amount?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumFeeStatusFieldUpdateOperationsInput | $Enums.FeeStatus
   paidOn?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   method?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -360,6 +415,7 @@ export type FeeRecordCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   shopId?: Prisma.SortOrder
   month?: Prisma.SortOrder
+  amount?: Prisma.SortOrder
   status?: Prisma.SortOrder
   paidOn?: Prisma.SortOrder
   method?: Prisma.SortOrder
@@ -367,10 +423,15 @@ export type FeeRecordCountOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
 }
 
+export type FeeRecordAvgOrderByAggregateInput = {
+  amount?: Prisma.SortOrder
+}
+
 export type FeeRecordMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   shopId?: Prisma.SortOrder
   month?: Prisma.SortOrder
+  amount?: Prisma.SortOrder
   status?: Prisma.SortOrder
   paidOn?: Prisma.SortOrder
   method?: Prisma.SortOrder
@@ -382,11 +443,16 @@ export type FeeRecordMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   shopId?: Prisma.SortOrder
   month?: Prisma.SortOrder
+  amount?: Prisma.SortOrder
   status?: Prisma.SortOrder
   paidOn?: Prisma.SortOrder
   method?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+}
+
+export type FeeRecordSumOrderByAggregateInput = {
+  amount?: Prisma.SortOrder
 }
 
 export type FeeRecordCreateNestedManyWithoutShopInput = {
@@ -438,6 +504,7 @@ export type EnumFeeStatusFieldUpdateOperationsInput = {
 export type FeeRecordCreateWithoutShopInput = {
   id?: string
   month: string
+  amount?: number
   status?: $Enums.FeeStatus
   paidOn?: Date | string | null
   method?: string | null
@@ -448,6 +515,7 @@ export type FeeRecordCreateWithoutShopInput = {
 export type FeeRecordUncheckedCreateWithoutShopInput = {
   id?: string
   month: string
+  amount?: number
   status?: $Enums.FeeStatus
   paidOn?: Date | string | null
   method?: string | null
@@ -488,6 +556,7 @@ export type FeeRecordScalarWhereInput = {
   id?: Prisma.StringFilter<"FeeRecord"> | string
   shopId?: Prisma.StringFilter<"FeeRecord"> | string
   month?: Prisma.StringFilter<"FeeRecord"> | string
+  amount?: Prisma.IntFilter<"FeeRecord"> | number
   status?: Prisma.EnumFeeStatusFilter<"FeeRecord"> | $Enums.FeeStatus
   paidOn?: Prisma.DateTimeNullableFilter<"FeeRecord"> | Date | string | null
   method?: Prisma.StringNullableFilter<"FeeRecord"> | string | null
@@ -498,6 +567,7 @@ export type FeeRecordScalarWhereInput = {
 export type FeeRecordCreateManyShopInput = {
   id?: string
   month: string
+  amount?: number
   status?: $Enums.FeeStatus
   paidOn?: Date | string | null
   method?: string | null
@@ -508,6 +578,7 @@ export type FeeRecordCreateManyShopInput = {
 export type FeeRecordUpdateWithoutShopInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   month?: Prisma.StringFieldUpdateOperationsInput | string
+  amount?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumFeeStatusFieldUpdateOperationsInput | $Enums.FeeStatus
   paidOn?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   method?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -518,6 +589,7 @@ export type FeeRecordUpdateWithoutShopInput = {
 export type FeeRecordUncheckedUpdateWithoutShopInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   month?: Prisma.StringFieldUpdateOperationsInput | string
+  amount?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumFeeStatusFieldUpdateOperationsInput | $Enums.FeeStatus
   paidOn?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   method?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -528,6 +600,7 @@ export type FeeRecordUncheckedUpdateWithoutShopInput = {
 export type FeeRecordUncheckedUpdateManyWithoutShopInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   month?: Prisma.StringFieldUpdateOperationsInput | string
+  amount?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumFeeStatusFieldUpdateOperationsInput | $Enums.FeeStatus
   paidOn?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   method?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -541,6 +614,7 @@ export type FeeRecordSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   id?: boolean
   shopId?: boolean
   month?: boolean
+  amount?: boolean
   status?: boolean
   paidOn?: boolean
   method?: boolean
@@ -553,6 +627,7 @@ export type FeeRecordSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   id?: boolean
   shopId?: boolean
   month?: boolean
+  amount?: boolean
   status?: boolean
   paidOn?: boolean
   method?: boolean
@@ -565,6 +640,7 @@ export type FeeRecordSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   id?: boolean
   shopId?: boolean
   month?: boolean
+  amount?: boolean
   status?: boolean
   paidOn?: boolean
   method?: boolean
@@ -577,6 +653,7 @@ export type FeeRecordSelectScalar = {
   id?: boolean
   shopId?: boolean
   month?: boolean
+  amount?: boolean
   status?: boolean
   paidOn?: boolean
   method?: boolean
@@ -584,7 +661,7 @@ export type FeeRecordSelectScalar = {
   updatedAt?: boolean
 }
 
-export type FeeRecordOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "shopId" | "month" | "status" | "paidOn" | "method" | "createdAt" | "updatedAt", ExtArgs["result"]["feeRecord"]>
+export type FeeRecordOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "shopId" | "month" | "amount" | "status" | "paidOn" | "method" | "createdAt" | "updatedAt", ExtArgs["result"]["feeRecord"]>
 export type FeeRecordInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   shop?: boolean | Prisma.ShopDefaultArgs<ExtArgs>
 }
@@ -604,6 +681,7 @@ export type $FeeRecordPayload<ExtArgs extends runtime.Types.Extensions.InternalA
     id: string
     shopId: string
     month: string
+    amount: number
     status: $Enums.FeeStatus
     paidOn: Date | null
     method: string | null
@@ -1036,6 +1114,7 @@ export interface FeeRecordFieldRefs {
   readonly id: Prisma.FieldRef<"FeeRecord", 'String'>
   readonly shopId: Prisma.FieldRef<"FeeRecord", 'String'>
   readonly month: Prisma.FieldRef<"FeeRecord", 'String'>
+  readonly amount: Prisma.FieldRef<"FeeRecord", 'Int'>
   readonly status: Prisma.FieldRef<"FeeRecord", 'FeeStatus'>
   readonly paidOn: Prisma.FieldRef<"FeeRecord", 'DateTime'>
   readonly method: Prisma.FieldRef<"FeeRecord", 'String'>

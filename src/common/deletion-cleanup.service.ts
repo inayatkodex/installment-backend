@@ -7,7 +7,10 @@ import {
 import { AuditService } from './audit/audit.service';
 import { StorageService } from './storage/storage.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { deletionRetentionCutoff } from './deletion-retention';
+import {
+  deletionRetentionCutoff,
+  shopDeletionRetentionCutoff,
+} from './deletion-retention';
 
 const CLEANUP_INTERVAL_MS = 60 * 1000;
 const CLEANUP_BATCH_SIZE = 50;
@@ -54,7 +57,7 @@ export class DeletionCleanupService implements OnModuleInit, OnModuleDestroy {
 
   async runCleanupNow() {
     await this.deleteExpiredCustomers(deletionRetentionCutoff());
-    await this.deleteExpiredShops(new Date(Date.now() - 24 * 60 * 60 * 1000));
+    await this.deleteExpiredShops(shopDeletionRetentionCutoff());
   }
 
   private async deleteExpiredCustomers(cutoff: Date) {

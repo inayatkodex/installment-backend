@@ -50,6 +50,11 @@ export type Shop = Prisma.ShopModel
  */
 export type FeeRecord = Prisma.FeeRecordModel
 /**
+ * Model ShopFeeRate
+ * 
+ */
+export type ShopFeeRate = Prisma.ShopFeeRateModel
+/**
  * Model Admin
  * 
  */

@@ -293,12 +293,21 @@ export class ShopService {
         profilePic: true,
         status: true,
         monthlyFee: true,
+        feeRates: {
+          where: { effectiveFromMonth: { lte: currentMonth() } },
+          orderBy: { effectiveFromMonth: 'desc' },
+          take: 1,
+        },
         createdAt: true,
       },
     });
     if (!shop) throw new NotFoundException('Shop nahi mili');
-    const { shopNo, ...details } = shop;
-    return ok({ ...details, shopCode: shopCode(shopNo) });
+    const { shopNo, feeRates, ...details } = shop;
+    return ok({
+      ...details,
+      monthlyFee: feeRates[0]?.amount ?? shop.monthlyFee,
+      shopCode: shopCode(shopNo),
+    });
   }
 
   async updateProfile(

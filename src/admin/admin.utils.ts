@@ -23,6 +23,12 @@ export function currentMonth(): string {
   return `${year}-${month}`;
 }
 
+export function nextMonth(month: string): string {
+  const [year, monthNumber] = month.split('-').map(Number);
+  const date = new Date(Date.UTC(year, monthNumber, 1));
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
 /** "2026-10" -> "October 2026" */
 export function monthLabel(month: string): string {
   return new Date(`${month}-01T00:00:00Z`).toLocaleString('en-US', {
@@ -34,7 +40,9 @@ export function monthLabel(month: string): string {
 
 /** "03001234567" -> "0300-1234567" */
 export function formatMobile(mobile: string): string {
-  return /^03\d{9}$/.test(mobile) ? `${mobile.slice(0, 4)}-${mobile.slice(4)}` : mobile;
+  return /^03\d{9}$/.test(mobile)
+    ? `${mobile.slice(0, 4)}-${mobile.slice(4)}`
+    : mobile;
 }
 
 export function shopCode(shopNo: number): string {

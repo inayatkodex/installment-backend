@@ -399,6 +399,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 export const ModelName = {
   Shop: 'Shop',
   FeeRecord: 'FeeRecord',
+  ShopFeeRate: 'ShopFeeRate',
   Admin: 'Admin',
   Customer: 'Customer',
   MonthlyReportSnapshot: 'MonthlyReportSnapshot',
@@ -426,7 +427,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "shop" | "feeRecord" | "admin" | "customer" | "monthlyReportSnapshot" | "customerRateChange" | "customerScheduleDateChange" | "customerPurchase" | "customerPurchaseScheduleDateChange" | "customerPurchaseRateChange" | "customerPurchaseItem" | "customerItem" | "payment" | "auditLog"
+    modelProps: "shop" | "feeRecord" | "shopFeeRate" | "admin" | "customer" | "monthlyReportSnapshot" | "customerRateChange" | "customerScheduleDateChange" | "customerPurchase" | "customerPurchaseScheduleDateChange" | "customerPurchaseRateChange" | "customerPurchaseItem" | "customerItem" | "payment" | "auditLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -575,6 +576,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.FeeRecordCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.FeeRecordCountAggregateOutputType> | number
+        }
+      }
+    }
+    ShopFeeRate: {
+      payload: Prisma.$ShopFeeRatePayload<ExtArgs>
+      fields: Prisma.ShopFeeRateFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ShopFeeRateFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShopFeeRatePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ShopFeeRateFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShopFeeRatePayload>
+        }
+        findFirst: {
+          args: Prisma.ShopFeeRateFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShopFeeRatePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ShopFeeRateFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShopFeeRatePayload>
+        }
+        findMany: {
+          args: Prisma.ShopFeeRateFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShopFeeRatePayload>[]
+        }
+        create: {
+          args: Prisma.ShopFeeRateCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShopFeeRatePayload>
+        }
+        createMany: {
+          args: Prisma.ShopFeeRateCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ShopFeeRateCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShopFeeRatePayload>[]
+        }
+        delete: {
+          args: Prisma.ShopFeeRateDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShopFeeRatePayload>
+        }
+        update: {
+          args: Prisma.ShopFeeRateUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShopFeeRatePayload>
+        }
+        deleteMany: {
+          args: Prisma.ShopFeeRateDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ShopFeeRateUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ShopFeeRateUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShopFeeRatePayload>[]
+        }
+        upsert: {
+          args: Prisma.ShopFeeRateUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShopFeeRatePayload>
+        }
+        aggregate: {
+          args: Prisma.ShopFeeRateAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateShopFeeRate>
+        }
+        groupBy: {
+          args: Prisma.ShopFeeRateGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ShopFeeRateGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ShopFeeRateCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ShopFeeRateCountAggregateOutputType> | number
         }
       }
     }
@@ -1539,6 +1614,7 @@ export const FeeRecordScalarFieldEnum = {
   id: 'id',
   shopId: 'shopId',
   month: 'month',
+  amount: 'amount',
   status: 'status',
   paidOn: 'paidOn',
   method: 'method',
@@ -1547,6 +1623,17 @@ export const FeeRecordScalarFieldEnum = {
 } as const
 
 export type FeeRecordScalarFieldEnum = (typeof FeeRecordScalarFieldEnum)[keyof typeof FeeRecordScalarFieldEnum]
+
+
+export const ShopFeeRateScalarFieldEnum = {
+  id: 'id',
+  shopId: 'shopId',
+  amount: 'amount',
+  effectiveFromMonth: 'effectiveFromMonth',
+  createdAt: 'createdAt'
+} as const
+
+export type ShopFeeRateScalarFieldEnum = (typeof ShopFeeRateScalarFieldEnum)[keyof typeof ShopFeeRateScalarFieldEnum]
 
 
 export const AdminScalarFieldEnum = {
@@ -2020,6 +2107,7 @@ export type PrismaClientOptions = PrismaClientOptionsWithAccelerateUrl | PrismaC
 export type GlobalOmitConfig = {
   shop?: Prisma.ShopOmit
   feeRecord?: Prisma.FeeRecordOmit
+  shopFeeRate?: Prisma.ShopFeeRateOmit
   admin?: Prisma.AdminOmit
   customer?: Prisma.CustomerOmit
   monthlyReportSnapshot?: Prisma.MonthlyReportSnapshotOmit

@@ -18,6 +18,7 @@ import { AdminService } from './admin.service';
 import { ListShopsQueryDto } from './dto/list-shops-query.dto';
 import { ResetShopPasswordDto } from './dto/reset-shop-password.dto';
 import { SetShopFeeDto } from './dto/set-shop-fee.dto';
+import { SetShopMonthlyFeeDto } from './dto/set-shop-monthly-fee.dto';
 import { UpdateShopStatusDto } from './dto/update-shop-status.dto';
 
 @ApiTags('Admin')
@@ -41,7 +42,7 @@ export class AdminController {
 
   @Get('shops/pending-deletion')
   @ApiOperation({
-    summary: 'List shops in the 24-hour deletion recovery window',
+    summary: 'List shops in the seven-day deletion recovery window',
   })
   pendingDeletion() {
     return this.admin.listPendingDeletion();
@@ -49,7 +50,7 @@ export class AdminController {
 
   @Post('shops/:id/undo-delete')
   @ApiOperation({
-    summary: 'Restore a shop before its 24-hour deletion deadline',
+    summary: 'Restore a shop before its seven-day deletion deadline',
   })
   undoDelete(@Param('id') id: string, @AdminId() adminId: string) {
     return this.admin.undoDeleteShop(id, adminId);
@@ -62,7 +63,9 @@ export class AdminController {
   }
 
   @Patch('shops/:id/password')
-  @ApiOperation({ summary: "Reset a shop's password and revoke existing sessions" })
+  @ApiOperation({
+    summary: "Reset a shop's password and revoke existing sessions",
+  })
   resetShopPassword(
     @Param('id') id: string,
     @Body() dto: ResetShopPasswordDto,
@@ -77,7 +80,7 @@ export class AdminController {
 
   @Delete('shops/:id')
   @ApiOperation({
-    summary: 'Schedule shop deletion after a 24-hour recovery window',
+    summary: 'Schedule shop deletion after a seven-day recovery window',
   })
   deleteShop(
     @Param('id') id: string,
@@ -115,6 +118,22 @@ export class AdminController {
     @Req() req: Request,
   ) {
     return this.admin.setFee(id, dto, adminId, {
+      ip: req?.ip,
+      userAgent: req?.headers['user-agent'],
+    });
+  }
+
+  @Patch('shops/:id/monthly-fee')
+  @ApiOperation({
+    summary: 'Set a shop-specific monthly fee for this or next month',
+  })
+  setMonthlyFee(
+    @Param('id') id: string,
+    @Body() dto: SetShopMonthlyFeeDto,
+    @AdminId() adminId: string,
+    @Req() req: Request,
+  ) {
+    return this.admin.setMonthlyFee(id, dto.amount, adminId, {
       ip: req?.ip,
       userAgent: req?.headers['user-agent'],
     });

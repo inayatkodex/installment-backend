@@ -6,12 +6,17 @@ import {
 import * as bcrypt from 'bcrypt';
 import { Prisma } from '../generated/prisma/client';
 import { AuditService } from '../common/audit/audit.service';
+import {
+  shopDeletionRetentionCutoff,
+  shopDeletionRetentionDays,
+} from '../common/deletion-retention';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   currentMonth,
   dateOnly,
   formatMobile,
   monthLabel,
+  nextMonth,
   shopCode,
 } from './admin.utils';
 import { ListShopsQueryDto } from './dto/list-shops-query.dto';
@@ -19,10 +24,29 @@ import { ResetShopPasswordDto } from './dto/reset-shop-password.dto';
 import { SetShopFeeDto } from './dto/set-shop-fee.dto';
 import { UpdateShopStatusDto } from './dto/update-shop-status.dto';
 
-type ShopWithFees = Prisma.ShopGetPayload<{ include: { feeRecords: true } }>;
+type ShopWithFees = Prisma.ShopGetPayload<{
+  include: { feeRecords: true; feeRates: true };
+}>;
+
+type FeeRateValue = { amount: number; effectiveFromMonth: string };
+
+function feeForMonth(
+  rates: FeeRateValue[],
+  month: string,
+  fallback: number,
+): number {
+  return (
+    rates
+      .filter((rate) => rate.effectiveFromMonth <= month)
+      .sort((left, right) =>
+        right.effectiveFromMonth.localeCompare(left.effectiveFromMonth),
+      )[0]?.amount ?? fallback
+  );
+}
 
 export interface FeeMonth {
   month: string;
+  amount: number;
   status: 'paid' | 'unpaid';
   paidOn?: string;
   method?: string;
@@ -39,35 +63,49 @@ export class AdminService {
   async dashboard() {
     const cur = currentMonth();
 
-    const [grouped, activeAgg, paidAgg] = await Promise.all([
+    const [grouped, activeShops] = await Promise.all([
       this.prisma.shop.groupBy({
         by: ['status'],
         where: { pendingDeletionAt: null },
         _count: { _all: true },
       }),
-      this.prisma.shop.aggregate({
+      this.prisma.shop.findMany({
         where: { status: 'active', pendingDeletionAt: null },
-        _sum: { monthlyFee: true },
-        _count: { _all: true },
-      }),
-      this.prisma.shop.aggregate({
-        where: {
-          status: 'active',
-          pendingDeletionAt: null,
-          feeRecords: { some: { month: cur, status: 'paid' } },
+        select: {
+          monthlyFee: true,
+          feeRates: {
+            where: { effectiveFromMonth: { lte: cur } },
+            orderBy: { effectiveFromMonth: 'desc' },
+            take: 1,
+          },
+          feeRecords: {
+            where: { month: cur },
+            select: { amount: true, status: true },
+          },
         },
-        _sum: { monthlyFee: true },
-        _count: { _all: true },
       }),
     ]);
 
     const count = { pending: 0, active: 0, inactive: 0, archived: 0 };
     for (const g of grouped) count[g.status] = g._count._all;
 
-    const activeShops = activeAgg._count._all;
-    const feePaidShops = paidAgg._count._all;
-    const feeCollected = paidAgg._sum.monthlyFee ?? 0;
-    const feeRemaining = (activeAgg._sum.monthlyFee ?? 0) - feeCollected;
+    const feeDetails = activeShops.map((shop) => ({
+      amount: feeForMonth(shop.feeRates, cur, shop.monthlyFee),
+      record: shop.feeRecords[0],
+    }));
+    const billableShops = feeDetails.filter((fee) => fee.amount > 0);
+    const feePaidShops = billableShops.filter(
+      (fee) => fee.record?.status === 'paid',
+    ).length;
+    const feeCollected = billableShops.reduce(
+      (total, fee) =>
+        total + (fee.record?.status === 'paid' ? fee.record.amount : 0),
+      0,
+    );
+    const feeRemaining = billableShops.reduce(
+      (total, fee) => total + (fee.record?.status === 'paid' ? 0 : fee.amount),
+      0,
+    );
 
     return {
       status: 'success',
@@ -82,9 +120,9 @@ export class AdminService {
         feeCollected,
         feePaidShops,
         feeRemaining,
-        feeUnpaidShops: activeShops - feePaidShops,
-        feePercent: activeShops
-          ? Math.round((feePaidShops / activeShops) * 100)
+        feeUnpaidShops: billableShops.length - feePaidShops,
+        feePercent: billableShops.length
+          ? Math.round((feePaidShops / billableShops.length) * 100)
           : 0,
       },
     };
@@ -111,6 +149,17 @@ export class AdminService {
       feeWhere = {
         status: { in: ['active', 'inactive'] },
         feeRecords: { none: { month: cur, status: 'paid' } },
+        OR: [
+          { monthlyFee: { gt: 0 } },
+          {
+            feeRates: {
+              some: {
+                amount: { gt: 0 },
+                effectiveFromMonth: { lte: cur },
+              },
+            },
+          },
+        ],
       };
     }
 
@@ -124,7 +173,10 @@ export class AdminService {
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
-        include: { feeRecords: { where: { month: cur } } },
+        include: {
+          feeRecords: { where: { month: cur } },
+          feeRates: { orderBy: { effectiveFromMonth: 'desc' }, take: 2 },
+        },
       }),
       this.prisma.shop.count({ where }),
       // Counts use only the search filter, not the status/fee filters
@@ -203,9 +255,7 @@ export class AdminService {
   async listPendingDeletion() {
     const shops = await this.prisma.shop.findMany({
       where: {
-        pendingDeletionAt: {
-          gt: new Date(Date.now() - 24 * 60 * 60 * 1000),
-        },
+        pendingDeletionAt: { gt: shopDeletionRetentionCutoff() },
       },
       select: {
         id: true,
@@ -241,13 +291,8 @@ export class AdminService {
       if (!shop?.pendingDeletionAt || !shop.deletionPreviousStatus) {
         throw new NotFoundException('Pending shop deletion not found');
       }
-      if (
-        shop.pendingDeletionAt.getTime() <=
-        Date.now() - 24 * 60 * 60 * 1000
-      ) {
-        throw new BadRequestException(
-          'The 24-hour recovery period has expired',
-        );
+      if (shop.pendingDeletionAt <= shopDeletionRetentionCutoff()) {
+        throw new BadRequestException('The shop recovery period has expired');
       }
 
       await tx.shop.update({
@@ -304,7 +349,10 @@ export class AdminService {
         entityType: 'Shop',
         entityId: id,
         details: {
-          scheduledFor: new Date(requestedAt.getTime() + 24 * 60 * 60 * 1000),
+          scheduledFor: new Date(
+            requestedAt.getTime() +
+              shopDeletionRetentionDays() * 24 * 60 * 60 * 1000,
+          ),
         },
         ipAddress: meta?.ip,
         userAgent: meta?.userAgent,
@@ -327,6 +375,7 @@ export class AdminService {
         id: true,
         shopName: true,
         status: true,
+        monthlyFee: true,
         pendingDeletionAt: true,
       },
     });
@@ -353,11 +402,18 @@ export class AdminService {
 
       // Create an unpaid fee record for this month when the status is active/inactive
       if (feeApplies) {
-        await tx.feeRecord.upsert({
-          where: { shopId_month: { shopId: id, month: cur } },
-          update: {},
-          create: { shopId: id, month: cur, status: 'unpaid' },
+        const rate = await tx.shopFeeRate.findFirst({
+          where: { shopId: id, effectiveFromMonth: { lte: cur } },
+          orderBy: { effectiveFromMonth: 'desc' },
         });
+        const amount = rate?.amount ?? exists.monthlyFee;
+        if (amount > 0) {
+          await tx.feeRecord.upsert({
+            where: { shopId_month: { shopId: id, month: cur } },
+            update: {},
+            create: { shopId: id, month: cur, amount, status: 'unpaid' },
+          });
+        }
       }
 
       await this.audit.recordWithTx(tx, {
@@ -389,7 +445,11 @@ export class AdminService {
   ) {
     const shop = await this.prisma.shop.findUnique({
       where: { id },
-      select: { status: true, pendingDeletionAt: true },
+      select: {
+        status: true,
+        monthlyFee: true,
+        pendingDeletionAt: true,
+      },
     });
     if (!shop) throw new NotFoundException('Shop not found');
     if (shop.pendingDeletionAt) {
@@ -400,6 +460,16 @@ export class AdminService {
 
     const where = { shopId_month: { shopId: id, month: dto.month } };
     const existing = await this.prisma.feeRecord.findUnique({ where });
+    const rate = await this.prisma.shopFeeRate.findFirst({
+      where: { shopId: id, effectiveFromMonth: { lte: dto.month } },
+      orderBy: { effectiveFromMonth: 'desc' },
+    });
+    const amount = rate?.amount ?? shop.monthlyFee;
+    if (amount <= 0) {
+      throw new BadRequestException(
+        'Set a monthly fee amount before recording payment',
+      );
+    }
 
     // Fee records can be created for active or inactive shops
     const canCreate = shop.status === 'active' || shop.status === 'inactive';
@@ -410,8 +480,18 @@ export class AdminService {
     const method = dto.method?.trim() || 'Cash';
     const data =
       dto.status === 'paid'
-        ? { status: 'paid' as const, paidOn: new Date(), method }
-        : { status: 'unpaid' as const, paidOn: null, method: null };
+        ? {
+            status: 'paid' as const,
+            amount: existing?.amount || amount,
+            paidOn: new Date(),
+            method,
+          }
+        : {
+            status: 'unpaid' as const,
+            amount: existing?.amount || amount,
+            paidOn: null,
+            method: null,
+          };
 
     await this.prisma.$transaction(async (tx) => {
       await tx.feeRecord.upsert({
@@ -431,6 +511,85 @@ export class AdminService {
           month: dto.month,
           previousStatus: existing?.status ?? 'unpaid',
           newStatus: dto.status,
+          amount: data.amount,
+        },
+        ipAddress: meta?.ip,
+        userAgent: meta?.userAgent,
+      });
+    });
+
+    return { status: 'success', data: await this.loadDetail(id) };
+  }
+
+  async setMonthlyFee(
+    id: string,
+    amount: number,
+    adminId: string,
+    meta?: { ip?: string; userAgent?: string },
+  ) {
+    const shop = await this.prisma.shop.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        status: true,
+        monthlyFee: true,
+        pendingDeletionAt: true,
+      },
+    });
+    if (!shop || shop.pendingDeletionAt) {
+      throw new NotFoundException('Shop not found');
+    }
+
+    const cur = currentMonth();
+    const currentRate = await this.prisma.shopFeeRate.findFirst({
+      where: { shopId: id, effectiveFromMonth: { lte: cur } },
+      orderBy: { effectiveFromMonth: 'desc' },
+    });
+    const currentAmount = currentRate?.amount ?? shop.monthlyFee;
+    const effectiveFromMonth = currentAmount > 0 ? nextMonth(cur) : cur;
+    const where = {
+      shopId_effectiveFromMonth: { shopId: id, effectiveFromMonth },
+    };
+    const previousRate = await this.prisma.shopFeeRate.findUnique({ where });
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.shopFeeRate.upsert({
+        where,
+        create: { shopId: id, amount, effectiveFromMonth },
+        update: { amount },
+      });
+
+      if (effectiveFromMonth === cur) {
+        await tx.shop.update({ where: { id }, data: { monthlyFee: amount } });
+        if (shop.status === 'active' || shop.status === 'inactive') {
+          const currentRecord = await tx.feeRecord.findUnique({
+            where: { shopId_month: { shopId: id, month: cur } },
+          });
+          if (currentRecord?.status !== 'paid') {
+            await tx.feeRecord.upsert({
+              where: { shopId_month: { shopId: id, month: cur } },
+              create: {
+                shopId: id,
+                month: cur,
+                amount,
+                status: 'unpaid',
+              },
+              update: { amount },
+            });
+          }
+        }
+      }
+
+      await this.audit.recordWithTx(tx, {
+        actorType: 'admin',
+        actorId: adminId,
+        action: 'SHOP_MONTHLY_FEE_CHANGED',
+        entityType: 'Shop',
+        entityId: id,
+        details: {
+          previousAmount: previousRate?.amount ?? currentAmount,
+          newAmount: amount,
+          effectiveFromMonth,
         },
         ipAddress: meta?.ip,
         userAgent: meta?.userAgent,
@@ -444,7 +603,10 @@ export class AdminService {
   private async loadDetail(id: string) {
     const shop = await this.prisma.shop.findUnique({
       where: { id },
-      include: { feeRecords: { orderBy: { month: 'desc' }, take: 12 } },
+      include: {
+        feeRecords: { orderBy: { month: 'desc' }, take: 12 },
+        feeRates: { orderBy: { effectiveFromMonth: 'desc' }, take: 2 },
+      },
     });
     if (!shop || shop.pendingDeletionAt)
       throw new NotFoundException('Shop not found');
@@ -476,17 +638,25 @@ export class AdminService {
     const currentRecord = shop.feeRecords.find((f) => f.month === cur);
 
     // Pending/archived shops do not have a fee for this month (null)
-    const feeStatus = feeApplies ? (currentRecord?.status ?? 'unpaid') : null;
+    const currentFee = feeForMonth(shop.feeRates, cur, shop.monthlyFee);
+    const feeStatus =
+      feeApplies && currentFee > 0 ? (currentRecord?.status ?? 'unpaid') : null;
+    const nextMonthKey = nextMonth(cur);
+    const nextFee = feeForMonth(shop.feeRates, nextMonthKey, currentFee);
+    const hasCurrentRate = shop.feeRates.some(
+      (rate) => rate.effectiveFromMonth <= cur,
+    );
 
     const history: FeeMonth[] = shop.feeRecords.map((f) => ({
       month: f.month,
       status: f.status,
+      amount: f.amount,
       ...(f.paidOn ? { paidOn: dateOnly(f.paidOn) } : {}),
       ...(f.method ? { method: f.method } : {}),
     }));
     // Show a row even if a new month has started and its record has not been created yet
-    if (feeApplies && !currentRecord)
-      history.unshift({ month: cur, status: 'unpaid' });
+    if (feeApplies && currentFee > 0 && !currentRecord)
+      history.unshift({ month: cur, amount: currentFee, status: 'unpaid' });
 
     return {
       id: shop.id,
@@ -500,7 +670,9 @@ export class AdminService {
       city: shop.city,
       status: shop.status,
       registeredAt: dateOnly(shop.createdAt),
-      monthlyFee: shop.monthlyFee,
+      monthlyFee: currentFee || null,
+      nextMonthlyFee: nextFee || null,
+      feeChangeEffectiveMonth: hasCurrentRate ? nextMonthKey : cur,
       feeStatus,
       feeHistory: detail ? history : [],
       statusNote: shop.statusNote ?? undefined,

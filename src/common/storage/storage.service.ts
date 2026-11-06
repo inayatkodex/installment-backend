@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  OnModuleInit,
+} from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { existsSync } from 'fs';
 import { mkdir, unlink, writeFile } from 'fs/promises';
@@ -6,12 +11,10 @@ import { join, normalize, resolve } from 'path';
 
 const MIME_EXT_MAP: Record<string, string> = {
   'image/jpeg': '.jpg',
-  'image/jpg': '.jpg',
   'image/png': '.png',
   'image/webp': '.webp',
-  'image/gif': '.gif',
-  'application/pdf': '.pdf',
 };
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 @Injectable()
 export class StorageService implements OnModuleInit {
@@ -35,7 +38,6 @@ export class StorageService implements OnModuleInit {
 
   /**
    * Saves a base64 Data URL to local disk and returns a relative URL path (e.g. `/uploads/customers/<uuid>.jpg`).
-   * If the input is already a URL or path, it returns it unchanged.
    */
   async saveBase64(
     input: string | null | undefined,
@@ -46,23 +48,72 @@ export class StorageService implements OnModuleInit {
     const trimmed = input.trim();
     if (!trimmed) return null;
 
-    // If it's already an existing relative URL or absolute URL, return as-is
-    if (!trimmed.startsWith('data:')) {
-      return trimmed;
+    if (!/^data:/i.test(trimmed)) {
+      throw new BadRequestException(
+        'Upload must be a supported image data URL',
+      );
     }
 
     // Match base64 Data URL format: data:<mime>;base64,<encoded>
     const match = trimmed.match(
-      /^data:([a-zA-Z0-9.+-]+\/[a-zA-Z0-9.+-]+);base64,(.+)$/,
+      /^data:([a-zA-Z0-9.+-]+\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/]+={0,2})$/i,
     );
     if (!match) {
-      this.logger.warn('Invalid data URL format received, storing as-is');
-      return trimmed;
+      throw new BadRequestException('Invalid image data URL');
     }
 
     const mime = match[1].toLowerCase();
     const base64Data = match[2];
-    const extension = MIME_EXT_MAP[mime] || '.jpg';
+    const extension = MIME_EXT_MAP[mime];
+    if (!extension) {
+      throw new BadRequestException(
+        'Only JPEG, PNG, and WebP uploads are supported',
+      );
+    }
+    const unpaddedData = base64Data.replace(/=+$/, '');
+    const paddingLength = base64Data.length - unpaddedData.length;
+    if (
+      /[^A-Za-z0-9+/=]/.test(base64Data) ||
+      unpaddedData.includes('=') ||
+      paddingLength > 2 ||
+      (paddingLength > 0 && base64Data.length % 4 !== 0) ||
+      unpaddedData.length % 4 === 1
+    ) {
+      throw new BadRequestException('Invalid base64 image data');
+    }
+
+    const buffer = Buffer.from(base64Data, 'base64');
+    if (
+      buffer.length > MAX_FILE_SIZE ||
+      buffer.toString('base64').replace(/=+$/, '') !== unpaddedData
+    ) {
+      throw new BadRequestException(
+        'Image must be valid base64 and no larger than 5 MB',
+      );
+    }
+
+    const hasValidSignature =
+      mime === 'image/jpeg'
+        ? buffer.length >= 3 &&
+          buffer[0] === 0xff &&
+          buffer[1] === 0xd8 &&
+          buffer[2] === 0xff
+        : mime === 'image/png'
+          ? buffer.length >= 8 &&
+            buffer
+              .subarray(0, 8)
+              .equals(
+                Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+              )
+          : buffer.length >= 12 &&
+            buffer.toString('ascii', 0, 4) === 'RIFF' &&
+            buffer.toString('ascii', 8, 12) === 'WEBP';
+    if (!hasValidSignature) {
+      throw new BadRequestException(
+        'Image content does not match its declared file type',
+      );
+    }
+
     const fileName = `${randomUUID()}${extension}`;
 
     const targetDir = join(this.uploadDir, subfolder);
@@ -71,7 +122,6 @@ export class StorageService implements OnModuleInit {
     }
 
     const filePath = join(targetDir, fileName);
-    const buffer = Buffer.from(base64Data, 'base64');
     await writeFile(filePath, buffer);
 
     return `/uploads/${subfolder}/${fileName}`;
