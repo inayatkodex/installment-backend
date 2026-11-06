@@ -72,13 +72,19 @@ export class ShopController {
   @Get('dashboard')
   @ApiOperation({
     summary: 'Dashboard: aaj ki wasooli, late aur mahine ka hisaab',
+    description:
+      'expected, received aur remaining aaj due qiston ke amounts hain. cashToday paidOn ke mutabiq aaj aayi cash aur uski qist allocation batata hai; lateByMonth purani qiston mein allocated cash ko due month ke mutabiq deta hai.',
   })
   dashboard(@ShopId() shopId: string) {
     return this.shop.dashboard(shopId);
   }
 
   @Get('collection/today')
-  @ApiOperation({ summary: 'Aaj jin ki qist due hai' })
+  @ApiOperation({
+    summary: 'Aaj jin ki qist due hai',
+    description:
+      'data.items mein qist rows aur data.cashToday mein paidOn ke mutabiq aaj aayi cash hoti hai.',
+  })
   collectionToday(@ShopId() shopId: string) {
     return this.shop.collectionToday(shopId);
   }
@@ -267,7 +273,11 @@ export class ShopController {
   }
 
   @Get('status')
-  @ApiOperation({ summary: 'Mahine ki report (?month=YYYY-MM)' })
+  @ApiOperation({
+    summary: 'Mahine ki report (?month=YYYY-MM)',
+    description:
+      'expected, received aur remaining is mahine due qiston ke amounts hain. cashCollected aur cashBreakdown paidOn ke mutabiq is mahine aayi cash dikhate hain.',
+  })
   status(@ShopId() shopId: string, @Query() q: StatusQueryDto) {
     return this.shop.status(shopId, q.month);
   }

@@ -59,6 +59,7 @@ export function combineInstallmentSchedules(
 }
 
 export interface PlanInput {
+  planKey?: string;
   items: { price: number }[];
   downPayment: number;
   initialMonthlyPayment: number;
@@ -70,6 +71,7 @@ export interface PlanInput {
   rateChanges: { fromInstallmentNo: number; monthlyPayment: number }[];
   /** Sirf wo payments jo wapas nahi hui, purani pehle */
   payments: {
+    id?: string;
     amount: number;
     paidOn: Date;
     method: string;
@@ -98,11 +100,33 @@ export interface MultiPlanInput {
 }
 
 export interface MultiPlanPayment {
+  id?: string;
   amount: number;
   paidOn: Date;
   createdAt: Date;
   method: string;
   note: string | null;
+}
+
+export interface InstallmentAllocation {
+  paymentId: string;
+  planKey: string;
+  installmentNo: number;
+  dueDate: string;
+  amount: number;
+}
+
+export interface MultiPlanScheduleResult {
+  schedules: InstallmentRow[][];
+  allocations: InstallmentAllocation[];
+}
+
+export interface CashRangeSummary {
+  total: number;
+  forPeriod: number;
+  late: number;
+  advance: number;
+  lateByMonth: { month: string; amount: number }[];
 }
 
 const TZ = 'Asia/Karachi';
@@ -177,9 +201,17 @@ export function isValidPlan(
 }
 
 export function buildSchedule(c: PlanInput, today: string): InstallmentRow[] {
+  return buildScheduleWithAllocations(c, today).rows;
+}
+
+export function buildScheduleWithAllocations(
+  c: PlanInput,
+  today: string,
+): { rows: InstallmentRow[]; allocations: InstallmentAllocation[] } {
   const remaining = totalOf(c) - c.downPayment;
   const rateChanges = c.rateChanges;
   const rows: InstallmentRow[] = [];
+  const allocations: InstallmentAllocation[] = [];
   let scheduled = 0;
   let installmentNo = 1;
   let changeIndex = 0;
@@ -233,6 +265,15 @@ export function buildSchedule(c: PlanInput, today: string): InstallmentRow[] {
     while (amt > 0 && idx < rows.length) {
       const use = Math.min(rows[idx].expected - rows[idx].paid, amt);
       rows[idx].paid += use;
+      if (p.id) {
+        allocations.push({
+          paymentId: p.id,
+          planKey: c.planKey ?? 'base',
+          installmentNo: rows[idx].no,
+          dueDate: rows[idx].dueDate,
+          amount: use,
+        });
+      }
       rows[idx].paidOn = dateOnly(p.paidOn);
       rows[idx].method = p.method;
       if (p.note) rows[idx].note = p.note;
@@ -257,7 +298,7 @@ export function buildSchedule(c: PlanInput, today: string): InstallmentRow[] {
             ? 'overdue'
             : 'pending';
   }
-  return rows;
+  return { rows, allocations };
 }
 
 export function buildMultiPlanSchedules(
@@ -266,6 +307,20 @@ export function buildMultiPlanSchedules(
   fallbackDueDate: string,
   today: string,
 ): InstallmentRow[][] {
+  return buildMultiPlanSchedulesWithAllocations(
+    plans,
+    payments,
+    fallbackDueDate,
+    today,
+  ).schedules;
+}
+
+export function buildMultiPlanSchedulesWithAllocations(
+  plans: MultiPlanInput[],
+  payments: MultiPlanPayment[],
+  fallbackDueDate: string,
+  today: string,
+): MultiPlanScheduleResult {
   const schedules = plans.map((plan) =>
     buildSchedule(
       {
@@ -277,6 +332,7 @@ export function buildMultiPlanSchedules(
       today,
     ),
   );
+  const allocations: InstallmentAllocation[] = [];
   const cursors = plans.map(() => 0);
   const orderedPayments = [...payments].sort(
     (a, b) =>
@@ -303,6 +359,15 @@ export function buildMultiPlanSchedules(
       const row = schedules[nextPlanIndex][cursors[nextPlanIndex]];
       const amount = Math.min(row.expected - row.paid, remaining);
       row.paid += amount;
+      if (payment.id) {
+        allocations.push({
+          paymentId: payment.id,
+          planKey: plans[nextPlanIndex].id,
+          installmentNo: row.no,
+          dueDate: row.dueDate,
+          amount,
+        });
+      }
       row.paidOn = dateOnly(payment.paidOn);
       row.method = payment.method;
       if (payment.note) row.note = payment.note;
@@ -330,5 +395,57 @@ export function buildMultiPlanSchedules(
     }
   }
 
-  return schedules;
+  return { schedules, allocations };
+}
+
+export function summarizeCashInRange(
+  payments: { id: string; amount: number; reversedAt?: Date | null }[],
+  allocations: InstallmentAllocation[],
+  fromIso: string,
+  toIso: string,
+): CashRangeSummary {
+  const activePayments = payments.filter((payment) => !payment.reversedAt);
+  const total = activePayments.reduce((sum, payment) => sum + payment.amount, 0);
+  const activePaymentIds = new Set(activePayments.map((payment) => payment.id));
+  const amountsByPayment = new Map<string, number>();
+  const breakdown: CashRangeSummary = {
+    total,
+    forPeriod: 0,
+    late: 0,
+    advance: 0,
+    lateByMonth: [],
+  };
+  const lateByMonth = new Map<string, number>();
+
+  for (const allocation of allocations) {
+    if (!activePaymentIds.has(allocation.paymentId)) continue;
+    amountsByPayment.set(
+      allocation.paymentId,
+      (amountsByPayment.get(allocation.paymentId) ?? 0) + allocation.amount,
+    );
+    if (allocation.dueDate < fromIso) {
+      breakdown.late += allocation.amount;
+      const month = allocation.dueDate.slice(0, 7);
+      lateByMonth.set(
+        month,
+        (lateByMonth.get(month) ?? 0) + allocation.amount,
+      );
+    }
+    else if (allocation.dueDate > toIso) breakdown.advance += allocation.amount;
+    else breakdown.forPeriod += allocation.amount;
+  }
+
+  for (const payment of activePayments) {
+    if ((amountsByPayment.get(payment.id) ?? 0) !== payment.amount) {
+      throw new Error(`Payment ${payment.id} is not fully allocated`);
+    }
+  }
+  if (breakdown.forPeriod + breakdown.late + breakdown.advance !== total) {
+    throw new Error('Cash allocation breakdown does not match the payment total');
+  }
+  breakdown.lateByMonth = [...lateByMonth.entries()]
+    .map(([month, amount]) => ({ month, amount }))
+    .sort((left, right) => left.month.localeCompare(right.month));
+
+  return breakdown;
 }

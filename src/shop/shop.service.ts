@@ -25,7 +25,7 @@ import { UpdateCustomerPurchasePaymentDto } from './dto/update-customer-purchase
 import { UpdateShopProfileDto } from './dto/update-shop-profile.dto';
 import {
   activeMonthlyTotal,
-  buildMultiPlanSchedules,
+  buildMultiPlanSchedulesWithAllocations,
   buildSchedule,
   combineInstallmentSchedules,
   addMonths,
@@ -35,7 +35,7 @@ import {
   MAX_SCHEDULE_INSTALLMENTS,
   PlanInput,
   MultiPlanInput,
-  startOfToday,
+  summarizeCashInRange,
   timeLabel,
   todayIso,
   totalOf,
@@ -298,12 +298,20 @@ export class ShopService {
     const received = items.reduce((s, i) => s + i.paid, 0);
     const late = this.lateOf(customers, today);
     const m = this.reportOf(customers, currentMonth(), today);
+    const cashToday = await this.cashInRange(shopId, today, today);
 
     return ok({
       dueCount: items.filter((i) => i.status !== 'paid').length,
       expected,
       received,
       remaining: expected - received,
+      cashToday,
+      todayInstallments: {
+        total: expected,
+        paid: received,
+        remaining: expected - received,
+      },
+      lateTotal: late.reduce((sum, item) => sum + item.lateAmount, 0),
       lateCount: late.length,
       lateAmount: late.reduce((s, l) => s + l.lateAmount, 0),
       month: { label: m.label, expected: m.expected, received: m.received },
@@ -313,15 +321,23 @@ export class ShopService {
   /* ================= 2. AAJ KI WASOOLI ================= */
   async collectionToday(shopId: string) {
     const customers = await this.loadAll(shopId);
-    return ok(this.collectionOf(customers, todayIso()));
+    const today = todayIso();
+    const items = this.collectionOf(customers, today);
+    const cashToday = await this.cashInRange(shopId, today, today);
+    return ok({ items, cashToday });
   }
 
   /* ================= 3. AAJ MIL GAYE ================= */
   async paymentsToday(shopId: string) {
+    const today = todayIso();
+    const from = new Date(`${today}T00:00:00+05:00`);
+    const afterToday = new Date(Date.parse(`${today}T00:00:00Z`) + 86400000)
+      .toISOString()
+      .slice(0, 10);
     const rows = await this.prisma.payment.findMany({
       where: {
         reversedAt: null,
-        paidOn: { gte: startOfToday() },
+        paidOn: { gte: from, lt: new Date(`${afterToday}T00:00:00+05:00`) },
         customer: { shopId, deletedAt: null },
       },
       include: { customer: { select: { id: true, name: true } } },
@@ -1350,7 +1366,51 @@ export class ShopService {
   /* ================= 14. STATUS (MONTH REPORT) ================= */
   async status(shopId: string, month?: string) {
     const customers = await this.loadAll(shopId);
-    return ok(this.reportOf(customers, month ?? currentMonth(), todayIso()));
+    const reportMonth = month ?? currentMonth();
+    const [year, monthNumber] = reportMonth.split('-').map(Number);
+    const lastDay = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate();
+    const reportEnd = `${reportMonth}-${String(lastDay).padStart(2, '0')}`;
+    const [report, cashBreakdown] = await Promise.all([
+      this.reportOf(customers, reportMonth, todayIso()),
+      this.cashInRange(shopId, `${reportMonth}-01`, reportEnd),
+    ]);
+    return ok({
+      ...report,
+      cashCollected: cashBreakdown.total,
+      cashBreakdown: {
+        thisMonth: cashBreakdown.forPeriod,
+        late: cashBreakdown.late,
+        advance: cashBreakdown.advance,
+      },
+    });
+  }
+
+  private async cashInRange(shopId: string, fromIso: string, toIso: string) {
+    const customers = await this.loadAll(shopId);
+    const from = new Date(`${fromIso}T00:00:00+05:00`);
+    const afterToIso = new Date(
+      Date.parse(`${toIso}T00:00:00Z`) + 24 * 60 * 60 * 1000,
+    )
+      .toISOString()
+      .slice(0, 10);
+    const until = new Date(`${afterToIso}T00:00:00+05:00`);
+    const payments = customers.flatMap((customer) =>
+      customer.payments
+        .filter(
+          (payment) =>
+            !payment.reversedAt &&
+            payment.paidOn >= from &&
+            payment.paidOn < until,
+        )
+        .map((payment) => ({ id: payment.id, amount: payment.amount })),
+    );
+    const paymentIds = new Set(payments.map((payment) => payment.id));
+    const allocations = customers.flatMap((customer) =>
+      this.financialOf(customer, todayIso()).allocations.filter((allocation) =>
+        paymentIds.has(allocation.paymentId),
+      ),
+    );
+    return summarizeCashInRange(payments, allocations, fromIso, toIso);
   }
 
   /* ================= helpers ================= */
@@ -1462,6 +1522,7 @@ export class ShopService {
     const payments = c.payments
       .filter((payment) => !payment.reversedAt)
       .map((payment) => ({
+        id: payment.id,
         amount: payment.amount,
         paidOn: payment.paidOn,
         createdAt: payment.createdAt,
@@ -1484,7 +1545,7 @@ export class ShopService {
         createdAt: purchase.createdAt,
       })),
     );
-    const schedules = buildMultiPlanSchedules(
+    const { schedules, allocations } = buildMultiPlanSchedulesWithAllocations(
       definitions,
       payments,
       c.firstDueDate,
@@ -1525,6 +1586,7 @@ export class ShopService {
       paid,
       remaining: total - paid,
       monthlyTotal: activeMonthlyTotal(plans, c.monthlyCollectionTarget),
+      allocations,
     };
   }
 
@@ -1697,10 +1759,6 @@ export class ShopService {
     );
     const precedingPayments = orderedPayments.slice(0, paymentIndex);
     const paymentForAllocation = { ...payment, reversedAt: null };
-    const before = this.financialOf(
-      { ...customer, payments: precedingPayments },
-      today,
-    );
     const after = this.financialOf(
       {
         ...customer,
@@ -1708,24 +1766,21 @@ export class ShopService {
       },
       today,
     );
-    const allocations = after.plans.flatMap((plan, planIndex) => {
-      const previousPlan = before.plans[planIndex];
-      return plan.rows.flatMap((row, rowIndex) => {
-        const amount = row.paid - (previousPlan?.rows[rowIndex]?.paid ?? 0);
-        return amount > 0
-          ? [
-              {
-                ...(customer.purchases.length > 0
-                  ? { planLabel: plan.label }
-                  : {}),
-                installmentNo: row.no,
-                dueDate: row.dueDate,
-                amount,
-              },
-            ]
-          : [];
+    const allocations = after.allocations
+      .filter((allocation) => allocation.paymentId === payment.id)
+      .map((allocation) => {
+        const plan = after.plans.find(
+          (item) => item.id === allocation.planKey,
+        );
+        return {
+          ...(customer.purchases.length > 0 && plan
+            ? { planLabel: plan.label }
+            : {}),
+          installmentNo: allocation.installmentNo,
+          dueDate: allocation.dueDate,
+          amount: allocation.amount,
+        };
       });
-    });
     const remainingLateRows = combineInstallmentSchedules(
       after.plans.map((plan) => plan.rows),
     ).filter((row) => row.status !== 'paid' && row.daysLate > 0);
@@ -1784,12 +1839,14 @@ export class ShopService {
   }
 
   private lateOf(customers: CustomerRecord[], today: string) {
+    const thisMonth = currentMonth();
     const out: {
       customerId: string;
       name: string;
       phone: string;
       photo?: string;
       lateAmount: number;
+      lateThisMonthAmount: number;
       lateCount: number;
       daysLate: number;
       lastPayment: string;
@@ -1818,6 +1875,9 @@ export class ShopService {
         phone: formatMobile(c.phone),
         photo: c.photo ?? undefined,
         lateAmount: rows.reduce((s, r) => s + r.expected - r.paid, 0),
+        lateThisMonthAmount: rows
+          .filter((row) => row.dueDate.startsWith(thisMonth))
+          .reduce((sum, row) => sum + row.expected - row.paid, 0),
         lateCount: rows.length,
         daysLate: rows[0].daysLate,
         lastPayment,
@@ -1859,6 +1919,9 @@ export class ShopService {
       totalCustomers: customers.length,
       paidInstallments: rows.filter((r) => r.status === 'paid').length,
       pendingInstallments: rows.filter((r) => r.status !== 'paid').length,
+      lateInstallments: rows.filter(
+        (row) => row.status !== 'paid' && row.daysLate > 0,
+      ).length,
       overdueCustomers: this.lateOf(customers, today).length,
       customers: customerRows
         .map(({ customer, rows: customerMonthRows }) => {
@@ -1873,6 +1936,16 @@ export class ShopService {
           const lateRows = customerMonthRows.filter(
             (row) => row.status !== 'paid' && row.daysLate > 0,
           );
+          const paidRows = customerMonthRows.filter(
+            (row) => row.status === 'paid',
+          );
+          const pendingRows = customerMonthRows.filter(
+            (row) => row.status !== 'paid' && row.daysLate === 0,
+          );
+          const paidInstallments = customerMonthRows.filter(
+            (row) => row.status === 'paid',
+          ).length;
+          const lateInstallments = lateRows.length;
           return {
             customerId: customer.id,
             name: customer.name,
@@ -1884,12 +1957,13 @@ export class ShopService {
               (sum, row) => sum + row.expected - row.paid,
               0,
             ),
-            paidInstallments: customerMonthRows.filter(
-              (row) => row.status === 'paid',
-            ).length,
-            pendingInstallments: customerMonthRows.filter(
-              (row) => row.status !== 'paid',
-            ).length,
+            paidInstallments,
+            lateInstallments,
+            pendingInstallments:
+              customerMonthRows.length - paidInstallments,
+            paidInstallmentDates: paidRows.map((row) => row.dueDate),
+            lateInstallmentDates: lateRows.map((row) => row.dueDate),
+            pendingInstallmentDates: pendingRows.map((row) => row.dueDate),
           };
         })
         .sort((a, b) => b.overdue - a.overdue || a.name.localeCompare(b.name)),

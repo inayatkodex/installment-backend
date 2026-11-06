@@ -1,11 +1,14 @@
 import {
   activeMonthlyTotal,
   buildMultiPlanSchedules,
+  buildMultiPlanSchedulesWithAllocations,
   buildSchedule,
+  buildScheduleWithAllocations,
   combineInstallmentSchedules,
   isValidPlan,
   MultiPlanInput,
   PlanInput,
+  summarizeCashInRange,
 } from './shop.logic';
 
 const plan = (overrides: Partial<PlanInput> = {}): PlanInput => ({
@@ -19,6 +22,199 @@ const plan = (overrides: Partial<PlanInput> = {}): PlanInput => ({
 });
 
 describe('installment schedule', () => {
+  it('records FIFO payment allocations without changing installment rows', () => {
+    const input = plan({
+      items: [{ price: 3000 }],
+      downPayment: 0,
+      initialMonthlyPayment: 1000,
+      firstDueDate: '2026-01-01',
+      payments: [
+        {
+          id: 'payment-1',
+          amount: 2500,
+          paidOn: new Date('2026-03-01T10:00:00Z'),
+          method: 'Cash',
+          note: null,
+        },
+      ],
+    });
+    const legacyRows = buildSchedule(input, '2026-03-01');
+    const detailed = buildScheduleWithAllocations(input, '2026-03-01');
+
+    expect(detailed.rows).toEqual(legacyRows);
+    expect(detailed.allocations).toEqual([
+      {
+        paymentId: 'payment-1',
+        planKey: 'base',
+        installmentNo: 1,
+        dueDate: '2026-01-01',
+        amount: 1000,
+      },
+      {
+        paymentId: 'payment-1',
+        planKey: 'base',
+        installmentNo: 2,
+        dueDate: '2026-02-01',
+        amount: 1000,
+      },
+      {
+        paymentId: 'payment-1',
+        planKey: 'base',
+        installmentNo: 3,
+        dueDate: '2026-03-01',
+        amount: 500,
+      },
+    ]);
+  });
+
+  it('splits cash between late and current installments and excludes reversed payments', () => {
+    const input = plan({
+      items: [{ price: 3000 }],
+      downPayment: 0,
+      initialMonthlyPayment: 1000,
+      firstDueDate: '2026-01-01',
+    });
+    const detailed = buildScheduleWithAllocations(
+      {
+        ...input,
+        payments: [
+          {
+            id: 'current-cash',
+            amount: 2500,
+            paidOn: new Date('2026-03-01T10:00:00Z'),
+            method: 'Cash',
+            note: null,
+          },
+        ],
+      },
+      '2026-03-01',
+    );
+    const summary = summarizeCashInRange(
+      [
+        { id: 'current-cash', amount: 2500 },
+        {
+          id: 'reversed-cash',
+          amount: 900,
+          reversedAt: new Date('2026-03-01T11:00:00Z'),
+        },
+      ],
+      [
+        ...detailed.allocations,
+        {
+          paymentId: 'reversed-cash',
+          planKey: 'base',
+          installmentNo: 1,
+          dueDate: '2026-01-01',
+          amount: 900,
+        },
+      ],
+      '2026-03-01',
+      '2026-03-01',
+    );
+
+    expect(summary).toEqual({
+      total: 2500,
+      forPeriod: 500,
+      late: 2000,
+      advance: 0,
+      lateByMonth: [
+        { month: '2026-01', amount: 1000 },
+        { month: '2026-02', amount: 1000 },
+      ],
+    });
+  });
+
+  it('classifies advance and monthly late cash with exact totals', () => {
+    const summary = summarizeCashInRange(
+      [{ id: 'november-cash', amount: 100000 }],
+      [
+        {
+          paymentId: 'november-cash',
+          planKey: 'base',
+          installmentNo: 1,
+          dueDate: '2026-11-01',
+          amount: 70000,
+        },
+        {
+          paymentId: 'november-cash',
+          planKey: 'base',
+          installmentNo: 2,
+          dueDate: '2026-10-01',
+          amount: 25000,
+        },
+        {
+          paymentId: 'november-cash',
+          planKey: 'base',
+          installmentNo: 3,
+          dueDate: '2026-12-01',
+          amount: 5000,
+        },
+      ],
+      '2026-11-01',
+      '2026-11-30',
+    );
+
+    expect(summary).toEqual({
+      total: 100000,
+      forPeriod: 70000,
+      late: 25000,
+      advance: 5000,
+      lateByMonth: [{ month: '2026-10', amount: 25000 }],
+    });
+  });
+
+  it('returns additive allocation details for multi-plan FIFO payments', () => {
+    const multiPlans: MultiPlanInput[] = [
+      {
+        id: 'a',
+        items: [{ name: 'Item A', price: 10000, boughtOn: '2026-10-01' }],
+        downPayment: 0,
+        initialMonthlyPayment: 7500,
+        firstDueDate: '2026-11-25',
+        rateChanges: [],
+        createdAt: new Date('2026-10-01T00:00:00Z'),
+      },
+      {
+        id: 'b',
+        items: [{ name: 'Item B', price: 5000, boughtOn: '2026-11-01' }],
+        downPayment: 0,
+        initialMonthlyPayment: 3000,
+        firstDueDate: null,
+        rateChanges: [],
+        createdAt: new Date('2026-11-01T00:00:00Z'),
+      },
+    ];
+    const payment = {
+      id: 'multi-plan-payment',
+      amount: 10500,
+      paidOn: new Date('2026-11-25T10:00:00Z'),
+      createdAt: new Date('2026-11-25T10:00:00Z'),
+      method: 'Cash',
+      note: null,
+    };
+    const legacyRows = buildMultiPlanSchedules(
+      multiPlans,
+      [payment],
+      '2026-11-25',
+      '2026-11-25',
+    );
+    const detailed = buildMultiPlanSchedulesWithAllocations(
+      multiPlans,
+      [payment],
+      '2026-11-25',
+      '2026-11-25',
+    );
+
+    expect(detailed.schedules).toEqual(legacyRows);
+    expect(detailed.allocations.reduce((sum, item) => sum + item.amount, 0)).toBe(
+      payment.amount,
+    );
+    expect(detailed.allocations.map((item) => item.planKey)).toEqual([
+      'a',
+      'b',
+    ]);
+  });
+
   it('creates monthly installments until the balance is paid and adjusts the last amount', () => {
     const rows = buildSchedule(
       plan({ items: [{ price: 34900 }] }),
@@ -161,7 +357,7 @@ describe('multiple purchase plan allocation', () => {
   const plans: MultiPlanInput[] = [
     {
       id: 'a',
-      items: [{ price: 100000 }],
+      items: [{ name: 'Item A', price: 100000, boughtOn: '2026-10-01' }],
       downPayment: 25000,
       initialMonthlyPayment: 7500,
       firstDueDate: '2026-11-25',
@@ -170,7 +366,7 @@ describe('multiple purchase plan allocation', () => {
     },
     {
       id: 'b',
-      items: [{ price: 30000 }],
+      items: [{ name: 'Item B', price: 30000, boughtOn: '2026-11-01' }],
       downPayment: 0,
       initialMonthlyPayment: 3000,
       firstDueDate: null,
