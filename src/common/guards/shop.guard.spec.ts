@@ -7,7 +7,13 @@ import { ShopGuard } from './shop.guard';
 describe('ShopGuard session version', () => {
   const shopId = 'shop-session-test';
   const jwt = new JwtService({ secret: 'shop-guard-unit-test-secret' });
-  const findUnique = jest.fn();
+  const findUnique = jest.fn<
+    () => Promise<{
+      status: string;
+      pendingDeletionAt: null;
+      tokenVersion: number;
+    }>
+  >();
   const guard = new ShopGuard(
     jwt,
     { shop: { findUnique } } as unknown as PrismaService,

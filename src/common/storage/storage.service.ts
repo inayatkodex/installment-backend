@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { existsSync } from 'fs';
 import { mkdir, unlink, writeFile } from 'fs/promises';
-import { extname, join, normalize, resolve } from 'path';
+import { join, normalize, resolve } from 'path';
 
 const MIME_EXT_MAP: Record<string, string> = {
   'image/jpeg': '.jpg',
@@ -52,7 +52,9 @@ export class StorageService implements OnModuleInit {
     }
 
     // Match base64 Data URL format: data:<mime>;base64,<encoded>
-    const match = trimmed.match(/^data:([a-zA-Z0-9.+-]+\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+    const match = trimmed.match(
+      /^data:([a-zA-Z0-9.+-]+\/[a-zA-Z0-9.+-]+);base64,(.+)$/,
+    );
     if (!match) {
       this.logger.warn('Invalid data URL format received, storing as-is');
       return trimmed;
@@ -92,8 +94,15 @@ export class StorageService implements OnModuleInit {
   /**
    * Safely deletes a file from disk if it starts with `/uploads/`
    */
-  async deleteFile(fileUrl: string | null | undefined): Promise<void> {
-    if (!fileUrl || typeof fileUrl !== 'string' || !fileUrl.startsWith('/uploads/')) {
+  async deleteFile(
+    fileUrl: string | null | undefined,
+    throwOnError = false,
+  ): Promise<void> {
+    if (
+      !fileUrl ||
+      typeof fileUrl !== 'string' ||
+      !fileUrl.startsWith('/uploads/')
+    ) {
       return;
     }
 
@@ -103,15 +112,22 @@ export class StorageService implements OnModuleInit {
 
       // Security check: prevent path traversal attacks
       if (!safePath.startsWith(this.uploadDir)) {
-        this.logger.warn(`Security warning: Path traversal attempt prevented: ${fileUrl}`);
+        this.logger.warn(
+          `Security warning: Path traversal attempt prevented: ${fileUrl}`,
+        );
         return;
       }
 
       if (existsSync(safePath)) {
         await unlink(safePath);
       }
-    } catch (err: any) {
-      this.logger.warn(`Failed to delete file ${fileUrl}: ${err?.message}`);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to delete file ${fileUrl}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      if (throwOnError) throw error;
     }
   }
 }

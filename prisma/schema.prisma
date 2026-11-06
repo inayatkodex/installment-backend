@@ -45,8 +45,9 @@ model Shop {
   docCnicBack     String? @db.Text
   docShopDocument String? @db.Text
 
-  feeRecords FeeRecord[]
-  customers  Customer[]
+  feeRecords             FeeRecord[]
+  customers              Customer[]
+  monthlyReportSnapshots MonthlyReportSnapshot[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -104,6 +105,9 @@ model Customer {
   firstDueDate            String // "YYYY-MM-DD"
   deletedAt               DateTime?
   deletionRequestedAt     DateTime?
+  completedAt             DateTime?
+  archivedAt              DateTime?
+  filesPurgedAt           DateTime?
 
   items               CustomerItem[]
   payments            Payment[]
@@ -118,7 +122,21 @@ model Customer {
   @@index([shopId, deletedAt])
   @@index([shopId, phone])
   @@index([deletionRequestedAt])
+  @@index([archivedAt, completedAt])
   @@map("customers")
+}
+
+model MonthlyReportSnapshot {
+  id        String   @id @default(uuid())
+  shopId    String
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  month     String
+  data      Json
+  createdAt DateTime @default(now())
+
+  @@unique([shopId, month])
+  @@index([month])
+  @@map("monthly_report_snapshots")
 }
 
 model CustomerRateChange {

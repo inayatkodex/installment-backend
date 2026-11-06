@@ -146,10 +146,42 @@ export class ShopController {
     return this.shop.listPendingDeletion(shopId);
   }
 
+  @Get('customers/archived')
+  @ApiOperation({ summary: 'Archived customers ki list' })
+  archivedCustomers(@ShopId() shopId: string) {
+    return this.shop.listArchivedCustomers(shopId);
+  }
+
   @Post('customers/:id/undo-delete')
-  @ApiOperation({ summary: '24 ghantay ke andar customer deletion wapas lena' })
+  @ApiOperation({ summary: 'Customer deletion wapas lena' })
   undoDelete(@ShopId() shopId: string, @Param('id') id: string) {
     return this.shop.undoDeleteCustomer(shopId, id);
+  }
+
+  @Post('customers/:id/archive')
+  @ApiOperation({ summary: 'Mukammal customer archive karna' })
+  archiveCustomer(
+    @ShopId() shopId: string,
+    @Param('id') id: string,
+    @Req() req?: Request,
+  ) {
+    return this.shop.archiveCustomer(shopId, id, {
+      ip: req?.ip,
+      userAgent: req?.headers['user-agent'],
+    });
+  }
+
+  @Post('customers/:id/restore-archive')
+  @ApiOperation({ summary: 'Archived customer wapas lana' })
+  restoreArchivedCustomer(
+    @ShopId() shopId: string,
+    @Param('id') id: string,
+    @Req() req?: Request,
+  ) {
+    return this.shop.restoreArchivedCustomer(shopId, id, {
+      ip: req?.ip,
+      userAgent: req?.headers['user-agent'],
+    });
   }
 
   @Post('customers')
@@ -229,7 +261,7 @@ export class ShopController {
   @Delete('customers/:id')
   @ApiOperation({
     summary:
-      'Completed customer ko 24 ghantay ke recovery window ke baad delete karna',
+      'Kisi bhi customer ko delete karna; undo retention window ke andar mumkin hai',
   })
   remove(
     @ShopId() shopId: string,

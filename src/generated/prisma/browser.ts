@@ -38,6 +38,11 @@ export type Admin = Prisma.AdminModel
  */
 export type Customer = Prisma.CustomerModel
 /**
+ * Model MonthlyReportSnapshot
+ * 
+ */
+export type MonthlyReportSnapshot = Prisma.MonthlyReportSnapshotModel
+/**
  * Model CustomerRateChange
  * 
  */

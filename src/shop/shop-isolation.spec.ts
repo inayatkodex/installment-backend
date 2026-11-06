@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   NotFoundException,
   UnauthorizedException,
@@ -146,7 +147,9 @@ describe('Shop Data Isolation & Authorization Guards (PostgreSQL Integration)', 
         shopId: shopAId,
         customerNo: 102,
         name: 'Completed Customer',
+        fatherName: 'Customer Father',
         phone: '03002223344',
+        cnic: '35202-4444444-5',
         downPayment: 4000,
         initialMonthlyPayment: 1000,
         monthlyPayment: 1000,
@@ -270,7 +273,7 @@ describe('Shop Data Isolation & Authorization Guards (PostgreSQL Integration)', 
               action: { not: 'SHOP_PERMANENTLY_DELETED' },
             },
           }),
-        ).resolves.toBeNull();
+        ).resolves.not.toBeNull();
         await expect(
           prisma.auditLog.findFirst({
             where: {
@@ -283,8 +286,8 @@ describe('Shop Data Isolation & Authorization Guards (PostgreSQL Integration)', 
       });
     });
 
-    describe('1a. Completed-customer deletion recovery window', () => {
-      it('hides a completed customer while retaining its data during the 24-hour window', async () => {
+    describe('1a. Customer deletion recovery window', () => {
+      it('deletes any customer with an audit snapshot and hides it during the undo window', async () => {
         const customer = await prisma.customer.findUniqueOrThrow({
           where: { id: completedCustomerId },
           include: { payments: true },
@@ -315,13 +318,42 @@ describe('Shop Data Isolation & Authorization Guards (PostgreSQL Integration)', 
           ],
         });
 
-        await shopService.deleteCustomer(shopAId, completedCustomerId);
+        await shopService.deleteCustomer(shopAId, completedCustomerId, {
+          ip: '192.0.2.10',
+        });
 
         const pending = await prisma.customer.findUniqueOrThrow({
           where: { id: completedCustomerId },
         });
         expect(pending.deletedAt).not.toBeNull();
         expect(pending.deletionRequestedAt).not.toBeNull();
+        const deletionLog = await prisma.auditLog.findFirstOrThrow({
+          where: {
+            entityType: 'Customer',
+            entityId: completedCustomerId,
+            action: 'CUSTOMER_DELETED',
+          },
+        });
+        expect(deletionLog.ipAddress).toBe('192.0.2.10');
+        expect(deletionLog.details).toEqual(
+          expect.objectContaining({
+            snapshot: expect.objectContaining({
+              code: 'C-0102',
+              name: 'Completed Customer',
+              fatherName: 'Customer Father',
+              phone: '03002223344',
+              cnicLast4: '4445',
+              totalPrice: 7000,
+              remaining: 0,
+              totalPaid: 7000,
+              paymentsCount: 1,
+              itemNames: ['Paid item', 'Paid purchase'],
+              archived: false,
+              actor: { type: 'shop', id: shopAId },
+              ip: '192.0.2.10',
+            }),
+          }),
+        );
         await expect(
           prisma.customerItem.count({
             where: { customerId: completedCustomerId },
@@ -336,6 +368,13 @@ describe('Shop Data Isolation & Authorization Guards (PostgreSQL Integration)', 
             expect.objectContaining({ id: completedCustomerId }),
           ]),
         );
+        await expect(
+          shopService.undoDeleteCustomer(shopBId, completedCustomerId),
+        ).rejects.toThrow(NotFoundException);
+        const otherShopPending = await shopService.listPendingDeletion(shopBId);
+        expect(otherShopPending.data).not.toContainEqual(
+          expect.objectContaining({ id: completedCustomerId }),
+        );
       });
 
       it('restores a customer when Undo is requested before expiry', async () => {
@@ -347,7 +386,7 @@ describe('Shop Data Isolation & Authorization Guards (PostgreSQL Integration)', 
         expect(restored.deletionRequestedAt).toBeNull();
       });
 
-      it('permanently deletes a customer and dependent data after expiry', async () => {
+      it('purges files but retains customers with payments and all audit history', async () => {
         const customer = await prisma.customer.findUniqueOrThrow({
           where: { id: completedCustomerId },
           include: { payments: true },
@@ -357,51 +396,38 @@ describe('Shop Data Isolation & Authorization Guards (PostgreSQL Integration)', 
         await prisma.customer.update({
           where: { id: completedCustomerId },
           data: {
-            deletionRequestedAt: new Date(Date.now() - 25 * 60 * 60 * 1000),
+            deletionRequestedAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000),
+          },
+        });
+        await expect(
+          shopService.undoDeleteCustomer(shopAId, completedCustomerId),
+        ).rejects.toThrow(BadRequestException);
+        const auditCountBefore = await prisma.auditLog.count({
+          where: {
+            OR: [
+              { entityType: 'Payment', entityId: paymentId },
+              { entityType: 'Customer', entityId: completedCustomerId },
+            ],
           },
         });
         await deletionCleanup.runCleanupNow();
 
-        await expect(
-          prisma.customer.findUnique({ where: { id: completedCustomerId } }),
-        ).resolves.toBeNull();
-        await expect(
-          prisma.customerItem.count({
-            where: { customerId: completedCustomerId },
-          }),
-        ).resolves.toBe(0);
+        const retained = await prisma.customer.findUniqueOrThrow({
+          where: { id: completedCustomerId },
+        });
+        expect(retained.filesPurgedAt).not.toBeNull();
+        expect(retained.photo).toBeNull();
+        expect(retained.docCnicFront).toBeNull();
+        expect(retained.docCnicBack).toBeNull();
+        expect(retained.docOther).toBeNull();
         await expect(
           prisma.payment.count({ where: { customerId: completedCustomerId } }),
-        ).resolves.toBe(0);
+        ).resolves.toBeGreaterThan(0);
         await expect(
           prisma.customerPurchase.count({
             where: { customerId: completedCustomerId },
           }),
-        ).resolves.toBe(0);
-        await expect(
-          prisma.customerRateChange.count({
-            where: { customerId: completedCustomerId },
-          }),
-        ).resolves.toBe(0);
-        await expect(
-          prisma.customerPurchaseItem.count({
-            where: { purchase: { customerId: completedCustomerId } },
-          }),
-        ).resolves.toBe(0);
-        await expect(
-          prisma.customerPurchaseRateChange.count({
-            where: { purchase: { customerId: completedCustomerId } },
-          }),
-        ).resolves.toBe(0);
-
-        const deletionLog = await prisma.auditLog.findFirstOrThrow({
-          where: {
-            entityType: 'Customer',
-            entityId: completedCustomerId,
-            action: 'CUSTOMER_PERMANENTLY_DELETED',
-          },
-        });
-        expect(deletionLog.details).toBeNull();
+        ).resolves.toBeGreaterThan(0);
         await expect(
           prisma.auditLog.count({
             where: {
@@ -411,7 +437,186 @@ describe('Shop Data Isolation & Authorization Guards (PostgreSQL Integration)', 
               ],
             },
           }),
+        ).resolves.toBe(auditCountBefore);
+      });
+
+      it('allows deletion of active and archived customers', async () => {
+        const activeCustomer = await prisma.customer.create({
+          data: {
+            shopId: shopAId,
+            customerNo: 112,
+            name: 'Active Customer',
+            phone: '03005556666',
+            downPayment: 0,
+            initialMonthlyPayment: 1000,
+            monthlyPayment: 1000,
+            firstDueDate: '2026-11-01',
+            items: {
+              create: [{ name: 'Tablet', price: 5000, boughtOn: '2026-11-01' }],
+            },
+          },
+        });
+        await shopService.deleteCustomer(shopAId, activeCustomer.id);
+        await expect(
+          prisma.customer.findUniqueOrThrow({
+            where: { id: activeCustomer.id },
+          }),
+        ).resolves.toMatchObject({ deletedAt: expect.any(Date) });
+        const visible = await shopService.listCustomers(shopAId, {});
+        expect(visible.data).not.toContainEqual(
+          expect.objectContaining({ id: activeCustomer.id }),
+        );
+
+        const archivedCustomer = await prisma.customer.create({
+          data: {
+            shopId: shopAId,
+            customerNo: 113,
+            name: 'Archived Customer',
+            phone: '03006667777',
+            downPayment: 1000,
+            initialMonthlyPayment: 1000,
+            monthlyPayment: 1000,
+            firstDueDate: '2026-11-01',
+            completedAt: new Date(),
+            items: {
+              create: [{ name: 'Camera', price: 1000, boughtOn: '2026-11-01' }],
+            },
+          },
+        });
+        await shopService.archiveCustomer(shopAId, archivedCustomer.id);
+        await shopService.deleteCustomer(shopAId, archivedCustomer.id);
+        const archivedDeletionLog = await prisma.auditLog.findFirstOrThrow({
+          where: {
+            entityType: 'Customer',
+            entityId: archivedCustomer.id,
+            action: 'CUSTOMER_DELETED',
+          },
+        });
+        expect(archivedDeletionLog.details).toEqual(
+          expect.objectContaining({
+            snapshot: expect.objectContaining({ archived: true }),
+          }),
+        );
+      });
+
+      it('automatically archives completed customers after seven days and restores them', async () => {
+        const completedAt = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
+        const customer = await prisma.customer.create({
+          data: {
+            shopId: shopAId,
+            customerNo: 114,
+            name: 'Auto Archive Customer',
+            phone: '03007778888',
+            downPayment: 1000,
+            initialMonthlyPayment: 1000,
+            monthlyPayment: 1000,
+            firstDueDate: '2026-11-01',
+            completedAt,
+            payments: { create: [{ amount: 1000, paidOn: new Date() }] },
+            items: {
+              create: [
+                { name: 'Headphones', price: 2000, boughtOn: '2026-11-01' },
+              ],
+            },
+          },
+        });
+        await shopService.archiveCompletedCustomersBefore(
+          new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+        );
+
+        const archived = await prisma.customer.findUniqueOrThrow({
+          where: { id: customer.id },
+        });
+        expect(archived.archivedAt).not.toBeNull();
+        const archivedList = await shopService.listArchivedCustomers(shopAId);
+        expect(archivedList.data).toContainEqual(
+          expect.objectContaining({ id: customer.id, status: 'archived' }),
+        );
+        const activeList = await shopService.listCustomers(shopAId, {});
+        expect(activeList.data).not.toContainEqual(
+          expect.objectContaining({ id: customer.id }),
+        );
+        const currentReport = await shopService.status(shopAId);
+        expect(currentReport.data.customers).toContainEqual(
+          expect.objectContaining({ customerId: customer.id }),
+        );
+        await expect(
+          shopService.restoreArchivedCustomer(shopBId, customer.id),
+        ).rejects.toThrow(NotFoundException);
+        await shopService.restoreArchivedCustomer(shopAId, customer.id);
+        const restored = await prisma.customer.findUniqueOrThrow({
+          where: { id: customer.id },
+        });
+        expect(restored.archivedAt).toBeNull();
+      });
+
+      it('hard-deletes only expired customers with no payment rows and keeps their audit', async () => {
+        const customer = await prisma.customer.create({
+          data: {
+            shopId: shopAId,
+            customerNo: 110,
+            name: 'No Payment Customer',
+            phone: '03003334444',
+            downPayment: 0,
+            initialMonthlyPayment: 1000,
+            monthlyPayment: 1000,
+            firstDueDate: '2026-11-01',
+            items: {
+              create: [{ name: 'Phone', price: 5000, boughtOn: '2026-11-01' }],
+            },
+          },
+        });
+        await shopService.deleteCustomer(shopAId, customer.id);
+        await prisma.customer.update({
+          where: { id: customer.id },
+          data: {
+            deletionRequestedAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000),
+          },
+        });
+
+        await deletionCleanup.runCleanupNow();
+
+        await expect(
+          prisma.customer.findUnique({ where: { id: customer.id } }),
+        ).resolves.toBeNull();
+        await expect(
+          prisma.auditLog.count({
+            where: { entityType: 'Customer', entityId: customer.id },
+          }),
+        ).resolves.toBe(2);
+      });
+
+      it('keeps a closed month snapshot unchanged after a customer is deleted', async () => {
+        const customer = await prisma.customer.create({
+          data: {
+            shopId: shopAId,
+            customerNo: 111,
+            name: 'Snapshot Customer',
+            phone: '03004445555',
+            downPayment: 0,
+            initialMonthlyPayment: 1000,
+            monthlyPayment: 1000,
+            firstDueDate: '2026-10-01',
+            items: {
+              create: [{ name: 'Laptop', price: 5000, boughtOn: '2026-10-01' }],
+            },
+          },
+        });
+        const before = await shopService.status(shopAId, '2026-10');
+        await shopService.deleteCustomer(shopAId, customer.id);
+        const after = await shopService.status(shopAId, '2026-10');
+
+        expect(after).toEqual(before);
+        await expect(
+          prisma.monthlyReportSnapshot.count({
+            where: { shopId: shopAId, month: '2026-10' },
+          }),
         ).resolves.toBe(1);
+        await expect(
+          prisma.monthlyReportSnapshot.count({
+            where: { shopId: shopBId, month: '2026-10' },
+          }),
+        ).resolves.toBe(0);
       });
     });
 

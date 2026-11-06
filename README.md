@@ -31,6 +31,12 @@
 $ npm install
 ```
 
+## Customer data lifecycle
+
+Completed customers are archived automatically seven days after completion, or manually from the customer detail page. Any customer can be soft-deleted; Undo is available for seven days by default (`DELETED_CUSTOMER_RETENTION_DAYS` can change this). Cleanup purges customer uploads after the retention period and hard-deletes only customers with no payment rows. Audit logs are retained.
+
+Closed-month status reports are saved in `monthly_report_snapshots` and returned unchanged on later reads. Apply the Prisma migrations before starting the application.
+
 ## Compile and run the project
 
 ```bash

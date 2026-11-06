@@ -401,6 +401,7 @@ export const ModelName = {
   FeeRecord: 'FeeRecord',
   Admin: 'Admin',
   Customer: 'Customer',
+  MonthlyReportSnapshot: 'MonthlyReportSnapshot',
   CustomerRateChange: 'CustomerRateChange',
   CustomerScheduleDateChange: 'CustomerScheduleDateChange',
   CustomerPurchase: 'CustomerPurchase',
@@ -425,7 +426,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "shop" | "feeRecord" | "admin" | "customer" | "customerRateChange" | "customerScheduleDateChange" | "customerPurchase" | "customerPurchaseScheduleDateChange" | "customerPurchaseRateChange" | "customerPurchaseItem" | "customerItem" | "payment" | "auditLog"
+    modelProps: "shop" | "feeRecord" | "admin" | "customer" | "monthlyReportSnapshot" | "customerRateChange" | "customerScheduleDateChange" | "customerPurchase" | "customerPurchaseScheduleDateChange" | "customerPurchaseRateChange" | "customerPurchaseItem" | "customerItem" | "payment" | "auditLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -722,6 +723,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.CustomerCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.CustomerCountAggregateOutputType> | number
+        }
+      }
+    }
+    MonthlyReportSnapshot: {
+      payload: Prisma.$MonthlyReportSnapshotPayload<ExtArgs>
+      fields: Prisma.MonthlyReportSnapshotFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MonthlyReportSnapshotFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MonthlyReportSnapshotPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MonthlyReportSnapshotFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MonthlyReportSnapshotPayload>
+        }
+        findFirst: {
+          args: Prisma.MonthlyReportSnapshotFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MonthlyReportSnapshotPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MonthlyReportSnapshotFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MonthlyReportSnapshotPayload>
+        }
+        findMany: {
+          args: Prisma.MonthlyReportSnapshotFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MonthlyReportSnapshotPayload>[]
+        }
+        create: {
+          args: Prisma.MonthlyReportSnapshotCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MonthlyReportSnapshotPayload>
+        }
+        createMany: {
+          args: Prisma.MonthlyReportSnapshotCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MonthlyReportSnapshotCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MonthlyReportSnapshotPayload>[]
+        }
+        delete: {
+          args: Prisma.MonthlyReportSnapshotDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MonthlyReportSnapshotPayload>
+        }
+        update: {
+          args: Prisma.MonthlyReportSnapshotUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MonthlyReportSnapshotPayload>
+        }
+        deleteMany: {
+          args: Prisma.MonthlyReportSnapshotDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MonthlyReportSnapshotUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MonthlyReportSnapshotUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MonthlyReportSnapshotPayload>[]
+        }
+        upsert: {
+          args: Prisma.MonthlyReportSnapshotUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MonthlyReportSnapshotPayload>
+        }
+        aggregate: {
+          args: Prisma.MonthlyReportSnapshotAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMonthlyReportSnapshot>
+        }
+        groupBy: {
+          args: Prisma.MonthlyReportSnapshotGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MonthlyReportSnapshotGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MonthlyReportSnapshotCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MonthlyReportSnapshotCountAggregateOutputType> | number
         }
       }
     }
@@ -1505,11 +1580,25 @@ export const CustomerScalarFieldEnum = {
   firstDueDate: 'firstDueDate',
   deletedAt: 'deletedAt',
   deletionRequestedAt: 'deletionRequestedAt',
+  completedAt: 'completedAt',
+  archivedAt: 'archivedAt',
+  filesPurgedAt: 'filesPurgedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type CustomerScalarFieldEnum = (typeof CustomerScalarFieldEnum)[keyof typeof CustomerScalarFieldEnum]
+
+
+export const MonthlyReportSnapshotScalarFieldEnum = {
+  id: 'id',
+  shopId: 'shopId',
+  month: 'month',
+  data: 'data',
+  createdAt: 'createdAt'
+} as const
+
+export type MonthlyReportSnapshotScalarFieldEnum = (typeof MonthlyReportSnapshotScalarFieldEnum)[keyof typeof MonthlyReportSnapshotScalarFieldEnum]
 
 
 export const CustomerRateChangeScalarFieldEnum = {
@@ -1633,6 +1722,13 @@ export const SortOrder = {
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const NullableJsonNullValueInput = {
@@ -1926,6 +2022,7 @@ export type GlobalOmitConfig = {
   feeRecord?: Prisma.FeeRecordOmit
   admin?: Prisma.AdminOmit
   customer?: Prisma.CustomerOmit
+  monthlyReportSnapshot?: Prisma.MonthlyReportSnapshotOmit
   customerRateChange?: Prisma.CustomerRateChangeOmit
   customerScheduleDateChange?: Prisma.CustomerScheduleDateChangeOmit
   customerPurchase?: Prisma.CustomerPurchaseOmit

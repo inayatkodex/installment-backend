@@ -55,6 +55,7 @@ export const ModelName = {
   FeeRecord: 'FeeRecord',
   Admin: 'Admin',
   Customer: 'Customer',
+  MonthlyReportSnapshot: 'MonthlyReportSnapshot',
   CustomerRateChange: 'CustomerRateChange',
   CustomerScheduleDateChange: 'CustomerScheduleDateChange',
   CustomerPurchase: 'CustomerPurchase',
@@ -157,11 +158,25 @@ export const CustomerScalarFieldEnum = {
   firstDueDate: 'firstDueDate',
   deletedAt: 'deletedAt',
   deletionRequestedAt: 'deletionRequestedAt',
+  completedAt: 'completedAt',
+  archivedAt: 'archivedAt',
+  filesPurgedAt: 'filesPurgedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type CustomerScalarFieldEnum = (typeof CustomerScalarFieldEnum)[keyof typeof CustomerScalarFieldEnum]
+
+
+export const MonthlyReportSnapshotScalarFieldEnum = {
+  id: 'id',
+  shopId: 'shopId',
+  month: 'month',
+  data: 'data',
+  createdAt: 'createdAt'
+} as const
+
+export type MonthlyReportSnapshotScalarFieldEnum = (typeof MonthlyReportSnapshotScalarFieldEnum)[keyof typeof MonthlyReportSnapshotScalarFieldEnum]
 
 
 export const CustomerRateChangeScalarFieldEnum = {
@@ -285,6 +300,13 @@ export const SortOrder = {
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const NullableJsonNullValueInput = {

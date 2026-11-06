@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  InternalServerErrorException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -13,6 +14,10 @@ import {
   shopCode,
 } from '../admin/admin.utils';
 import { AuditService } from '../common/audit/audit.service';
+import {
+  deletionRetentionCutoff,
+  deletionRetentionDays,
+} from '../common/deletion-retention';
 import { StorageService } from '../common/storage/storage.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChangeShopPasswordDto } from './dto/change-shop-password.dto';
@@ -69,6 +74,8 @@ const LEAN_SELECT = {
   monthlyCollectionTarget: true,
   firstDueDate: true,
   createdAt: true,
+  completedAt: true,
+  archivedAt: true,
   rateChanges: { orderBy: { fromInstallmentNo: 'asc' } },
   scheduleDateChanges: { orderBy: { fromInstallmentNo: 'asc' } },
   items: {
@@ -136,9 +143,114 @@ type CustomerLean = Prisma.CustomerGetPayload<{
 }>;
 
 type CustomerRecord = CustomerLean | CustomerFull;
-type CustomerStatus = 'active' | 'overdue' | 'completed';
+type CustomerStatus = 'active' | 'overdue' | 'completed' | 'archived';
 
-const ok = <T>(data: T) => ({ status: 'success', data });
+export interface StatusReportCustomerData extends Prisma.InputJsonObject {
+  customerId: string;
+  name: string;
+  phone: string;
+  expected: number;
+  received: number;
+  remaining: number;
+  overdue: number;
+  paidInstallments: number;
+  lateInstallments: number;
+  pendingInstallments: number;
+  paidInstallmentDates: string[];
+  lateInstallmentDates: string[];
+  pendingInstallmentDates: string[];
+}
+
+export interface StatusReportData extends Prisma.InputJsonObject {
+  month: string;
+  label: string;
+  expected: number;
+  received: number;
+  remaining: number;
+  overdue: number;
+  collectedPercent: number;
+  totalCustomers: number;
+  paidInstallments: number;
+  pendingInstallments: number;
+  lateInstallments: number;
+  overdueCustomers: number;
+  customers: StatusReportCustomerData[];
+  cashCollected: number;
+  cashBreakdown: { thisMonth: number; late: number; advance: number };
+}
+
+function isStatusReportData(value: unknown): value is StatusReportData {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const report = value as Record<string, unknown>;
+  const numericFields = [
+    'expected',
+    'received',
+    'remaining',
+    'overdue',
+    'collectedPercent',
+    'totalCustomers',
+    'paidInstallments',
+    'pendingInstallments',
+    'lateInstallments',
+    'overdueCustomers',
+    'cashCollected',
+  ];
+  if (
+    typeof report.month !== 'string' ||
+    typeof report.label !== 'string' ||
+    numericFields.some((field) => typeof report[field] !== 'number') ||
+    !Array.isArray(report.customers) ||
+    !report.cashBreakdown ||
+    typeof report.cashBreakdown !== 'object' ||
+    Array.isArray(report.cashBreakdown)
+  ) {
+    return false;
+  }
+  const cashBreakdown = report.cashBreakdown as Record<string, unknown>;
+  if (
+    ['thisMonth', 'late', 'advance'].some(
+      (field) => typeof cashBreakdown[field] !== 'number',
+    )
+  ) {
+    return false;
+  }
+  return report.customers.every((value) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return false;
+    }
+    const customer = value as Record<string, unknown>;
+    return (
+      typeof customer.customerId === 'string' &&
+      typeof customer.name === 'string' &&
+      typeof customer.phone === 'string' &&
+      [
+        'expected',
+        'received',
+        'remaining',
+        'overdue',
+        'paidInstallments',
+        'lateInstallments',
+        'pendingInstallments',
+      ].every((field) => typeof customer[field] === 'number') &&
+      [
+        'paidInstallmentDates',
+        'lateInstallmentDates',
+        'pendingInstallmentDates',
+      ].every(
+        (field) =>
+          Array.isArray(customer[field]) &&
+          (customer[field] as unknown[]).every(
+            (date) => typeof date === 'string',
+          ),
+      )
+    );
+  });
+}
+
+const ok = <T>(data: T): { status: 'success'; data: T } => ({
+  status: 'success',
+  data,
+});
 const clean = (v?: string) => v?.trim() || null;
 const digits = (v: string) => v.replace(/\D/g, '');
 const planLabel = (index: number) => {
@@ -291,13 +403,14 @@ export class ShopService {
   /* ================= 1. DASHBOARD ================= */
   async dashboard(shopId: string) {
     const customers = await this.loadAll(shopId);
+    const reportCustomers = await this.loadAll(shopId, undefined, true);
     const today = todayIso();
 
     const items = this.collectionOf(customers, today);
     const expected = items.reduce((s, i) => s + i.expected, 0);
     const received = items.reduce((s, i) => s + i.paid, 0);
     const late = this.lateOf(customers, today);
-    const m = this.reportOf(customers, currentMonth(), today);
+    const m = this.reportOf(reportCustomers, currentMonth(), today);
     const cashToday = await this.cashInRange(shopId, today, today);
 
     return ok({
@@ -338,7 +451,7 @@ export class ShopService {
       where: {
         reversedAt: null,
         paidOn: { gte: from, lt: new Date(`${afterToday}T00:00:00+05:00`) },
-        customer: { shopId, deletedAt: null },
+        customer: { shopId, deletedAt: null, archivedAt: null },
       },
       include: { customer: { select: { id: true, name: true } } },
       orderBy: { paidOn: 'desc' },
@@ -394,6 +507,7 @@ export class ShopService {
               id: existingTx.customerId,
               shopId,
               deletedAt: null,
+              archivedAt: null,
             },
             include: FULL,
           });
@@ -415,7 +529,12 @@ export class ShopService {
 
       // Re-fetch customer state within the locked transaction
       const c = await tx.customer.findFirst({
-        where: { id: dto.customerId, shopId, deletedAt: null },
+        where: {
+          id: dto.customerId,
+          shopId,
+          deletedAt: null,
+          archivedAt: null,
+        },
         include: FULL,
       });
 
@@ -450,6 +569,12 @@ export class ShopService {
           idempotencyKey: trimmedKey,
         },
       });
+      if (financial.remaining - dto.amount <= 0) {
+        await tx.customer.update({
+          where: { id: c.id },
+          data: { completedAt: c.completedAt ?? new Date() },
+        });
+      }
       const receipt = this.paymentReceipt(c, payment, todayIso());
 
       // Write audit log inside the same transaction
@@ -483,7 +608,7 @@ export class ShopService {
   ) {
     return this.prisma.$transaction(async (tx) => {
       const p = await tx.payment.findFirst({
-        where: { id, customer: { shopId, deletedAt: null } },
+        where: { id, customer: { shopId, deletedAt: null, archivedAt: null } },
         include: {
           customer: { select: { id: true, name: true, shopId: true } },
         },
@@ -508,6 +633,20 @@ export class ShopService {
       await tx.payment.update({
         where: { id: p.id },
         data: { reversedAt: new Date() },
+      });
+      const updatedCustomer = await tx.customer.findUniqueOrThrow({
+        where: { id: p.customerId },
+        include: FULL,
+      });
+      const updatedFinancial = this.financialOf(updatedCustomer, todayIso());
+      await tx.customer.update({
+        where: { id: p.customerId },
+        data: {
+          completedAt:
+            updatedFinancial.remaining <= 0
+              ? (updatedCustomer.completedAt ?? new Date())
+              : null,
+        },
       });
 
       await this.audit.recordWithTx(tx, {
@@ -541,6 +680,113 @@ export class ShopService {
       .filter((c) => !q.status || q.status === 'all' || c.status === q.status);
 
     return ok(items);
+  }
+
+  async listArchivedCustomers(shopId: string) {
+    const customers = await this.loadAll(shopId, undefined, true);
+    return ok(
+      customers
+        .filter((customer) => customer.archivedAt !== null)
+        .map((customer) => ({
+          ...this.toListItem(customer, todayIso()),
+          archivedAt: customer.archivedAt,
+        })),
+    );
+  }
+
+  async archiveCustomer(
+    shopId: string,
+    id: string,
+    meta?: { ip?: string; userAgent?: string },
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const customer = await tx.customer.findFirst({
+        where: { id, shopId, deletedAt: null, archivedAt: null },
+        select: LEAN_SELECT,
+      });
+      if (!customer) throw new NotFoundException('Customer nahi mila');
+      if (this.toListItem(customer, todayIso()).status !== 'completed') {
+        throw new BadRequestException(
+          'Sirf mukammal customer archive ho sakta hai',
+        );
+      }
+      const archivedAt = new Date();
+      await tx.customer.update({
+        where: { id },
+        data: { archivedAt, completedAt: customer.completedAt ?? archivedAt },
+      });
+      await this.audit.recordWithTx(tx, {
+        actorType: 'shop',
+        actorId: shopId,
+        action: 'CUSTOMER_ARCHIVED',
+        entityType: 'Customer',
+        entityId: id,
+        ipAddress: meta?.ip,
+        userAgent: meta?.userAgent,
+      });
+      return ok({ ok: true });
+    });
+  }
+
+  async restoreArchivedCustomer(
+    shopId: string,
+    id: string,
+    meta?: { ip?: string; userAgent?: string },
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const result = await tx.customer.updateMany({
+        where: { id, shopId, deletedAt: null, archivedAt: { not: null } },
+        data: { archivedAt: null, completedAt: new Date() },
+      });
+      if (!result.count) throw new NotFoundException('Customer nahi mila');
+      await this.audit.recordWithTx(tx, {
+        actorType: 'shop',
+        actorId: shopId,
+        action: 'CUSTOMER_ARCHIVE_UNDONE',
+        entityType: 'Customer',
+        entityId: id,
+        ipAddress: meta?.ip,
+        userAgent: meta?.userAgent,
+      });
+      return ok({ ok: true });
+    });
+  }
+
+  async archiveCompletedCustomersBefore(cutoff: Date) {
+    const customers = await this.prisma.customer.findMany({
+      where: {
+        deletedAt: null,
+        archivedAt: null,
+        completedAt: { lte: cutoff },
+      },
+      select: { ...LEAN_SELECT, shopId: true },
+      take: 100,
+      orderBy: { completedAt: 'asc' },
+    });
+    for (const customer of customers) {
+      if (this.financialOf(customer, todayIso()).remaining > 0) continue;
+      await this.prisma.$transaction(async (tx) => {
+        const result = await tx.customer.updateMany({
+          where: {
+            id: customer.id,
+            shopId: customer.shopId,
+            deletedAt: null,
+            archivedAt: null,
+            completedAt: { lte: cutoff },
+          },
+          data: { archivedAt: new Date() },
+        });
+        if (!result.count) return;
+        await this.audit.recordWithTx(tx, {
+          actorType: 'system',
+          actorId: 'customer-auto-archive',
+          action: 'CUSTOMER_ARCHIVED',
+          entityType: 'Customer',
+          entityId: customer.id,
+          details: { reason: 'completed_for_seven_days' },
+        });
+      });
+    }
   }
 
   /* ================= 7. CUSTOMER BANANA ================= */
@@ -604,6 +850,7 @@ export class ShopService {
           initialMonthlyPayment: dto.monthlyPayment,
           monthlyPayment: dto.monthlyPayment,
           firstDueDate: dto.firstDueDate,
+          completedAt: total <= dto.downPayment ? new Date() : null,
           items: {
             create: items,
           },
@@ -617,7 +864,7 @@ export class ShopService {
 
   /* ================= 8. CUSTOMER DETAIL ================= */
   async getCustomer(shopId: string, id: string) {
-    return ok(await this.detailOf(await this.findFull(shopId, id)));
+    return ok(await this.detailOf(await this.findFull(shopId, id, true)));
   }
 
   async listPendingDeletion(shopId: string) {
@@ -625,9 +872,7 @@ export class ShopService {
       where: {
         shopId,
         deletedAt: { not: null },
-        deletionRequestedAt: {
-          gt: new Date(Date.now() - 24 * 60 * 60 * 1000),
-        },
+        deletionRequestedAt: { gt: deletionRetentionCutoff() },
       },
       select: {
         id: true,
@@ -647,6 +892,15 @@ export class ShopService {
 
   async undoDeleteCustomer(shopId: string, id: string) {
     return this.prisma.$transaction(async (tx) => {
+      const locked = await tx.$queryRaw<{ id: string }[]>`
+        SELECT id FROM "customers"
+        WHERE id = ${id}
+          AND "shopId" = ${shopId}
+          AND "deletedAt" IS NOT NULL
+        FOR UPDATE
+      `;
+      if (!locked.length) throw new NotFoundException('Customer nahi mila');
+
       const customer = await tx.customer.findFirst({
         where: { id, shopId, deletedAt: { not: null } },
         select: { id: true, deletionRequestedAt: true },
@@ -656,10 +910,10 @@ export class ShopService {
       }
       if (
         customer.deletionRequestedAt.getTime() <=
-        Date.now() - 24 * 60 * 60 * 1000
+        deletionRetentionCutoff().getTime()
       ) {
         throw new BadRequestException(
-          'Customer ko wapas lane ka 24 ghantay ka waqt khatam ho gaya',
+          `Customer ko wapas lane ka ${deletionRetentionDays()} din ka waqt khatam ho gaya`,
         );
       }
 
@@ -721,13 +975,13 @@ export class ShopService {
     await this.prisma.$transaction(async (tx) => {
       const locked = await tx.$queryRaw<{ id: string }[]>`
         SELECT id FROM "customers"
-        WHERE id = ${id} AND "shopId" = ${shopId} AND "deletedAt" IS NULL
+        WHERE id = ${id} AND "shopId" = ${shopId} AND "deletedAt" IS NULL AND "archivedAt" IS NULL
         FOR UPDATE
       `;
       if (!locked.length) throw new NotFoundException('Customer nahi mila');
 
       const customer = await tx.customer.findFirst({
-        where: { id, shopId, deletedAt: null },
+        where: { id, shopId, deletedAt: null, archivedAt: null },
         include: FULL,
       });
       if (!customer) throw new NotFoundException('Customer nahi mila');
@@ -761,6 +1015,7 @@ export class ShopService {
         where: { id },
         data: {
           monthlyCollectionTarget: currentMonthlyTotal + dto.monthlyPayment,
+          completedAt: null,
         },
       });
     });
@@ -783,13 +1038,13 @@ export class ShopService {
     await this.prisma.$transaction(async (tx) => {
       const locked = await tx.$queryRaw<{ id: string }[]>`
         SELECT id FROM "customers"
-        WHERE id = ${customerId} AND "shopId" = ${shopId} AND "deletedAt" IS NULL
+        WHERE id = ${customerId} AND "shopId" = ${shopId} AND "deletedAt" IS NULL AND "archivedAt" IS NULL
         FOR UPDATE
       `;
       if (!locked.length) throw new NotFoundException('Customer nahi mila');
 
       const customer = await tx.customer.findFirst({
-        where: { id: customerId, shopId, deletedAt: null },
+        where: { id: customerId, shopId, deletedAt: null, archivedAt: null },
         include: FULL,
       });
       if (!customer) throw new NotFoundException('Customer nahi mila');
@@ -838,13 +1093,13 @@ export class ShopService {
     await this.prisma.$transaction(async (tx) => {
       const locked = await tx.$queryRaw<{ id: string }[]>`
         SELECT id FROM "customers"
-        WHERE id = ${customerId} AND "shopId" = ${shopId} AND "deletedAt" IS NULL
+        WHERE id = ${customerId} AND "shopId" = ${shopId} AND "deletedAt" IS NULL AND "archivedAt" IS NULL
         FOR UPDATE
       `;
       if (!locked.length) throw new NotFoundException('Customer nahi mila');
 
       const customer = await tx.customer.findFirst({
-        where: { id: customerId, shopId, deletedAt: null },
+        where: { id: customerId, shopId, deletedAt: null, archivedAt: null },
         include: FULL,
       });
       if (!customer) throw new NotFoundException('Customer nahi mila');
@@ -951,13 +1206,13 @@ export class ShopService {
     await this.prisma.$transaction(async (tx) => {
       const locked = await tx.$queryRaw<{ id: string }[]>`
         SELECT id FROM "customers"
-        WHERE id = ${customerId} AND "shopId" = ${shopId} AND "deletedAt" IS NULL
+        WHERE id = ${customerId} AND "shopId" = ${shopId} AND "deletedAt" IS NULL AND "archivedAt" IS NULL
         FOR UPDATE
       `;
       if (!locked.length) throw new NotFoundException('Customer nahi mila');
 
       const customer = await tx.customer.findFirst({
-        where: { id: customerId, shopId, deletedAt: null },
+        where: { id: customerId, shopId, deletedAt: null, archivedAt: null },
         include: FULL,
       });
       if (!customer) throw new NotFoundException('Customer nahi mila');
@@ -1101,7 +1356,7 @@ export class ShopService {
 
           if (dto.firstDueDate !== undefined) {
             const customer = await tx.customer.findFirst({
-              where: { id, shopId, deletedAt: null },
+              where: { id, shopId, deletedAt: null, archivedAt: null },
               include: FULL,
             });
             if (!customer) throw new NotFoundException('Customer nahi mila');
@@ -1109,7 +1364,7 @@ export class ShopService {
           }
 
           const result = await tx.customer.updateMany({
-            where: { id, shopId, deletedAt: null },
+            where: { id, shopId, deletedAt: null, archivedAt: null },
             data: {
               ...data,
               monthlyCollectionTarget: newMonthlyPayment,
@@ -1130,13 +1385,13 @@ export class ShopService {
           if (!locked.length) throw new NotFoundException('Customer nahi mila');
 
           const customer = await tx.customer.findFirst({
-            where: { id, shopId, deletedAt: null },
+            where: { id, shopId, deletedAt: null, archivedAt: null },
             include: FULL,
           });
           if (!customer) throw new NotFoundException('Customer nahi mila');
           if (newMonthlyPayment === customer.monthlyPayment) {
             await tx.customer.updateMany({
-              where: { id, shopId, deletedAt: null },
+              where: { id, shopId, deletedAt: null, archivedAt: null },
               data,
             });
             return;
@@ -1195,7 +1450,7 @@ export class ShopService {
           }
 
           const result = await tx.customer.updateMany({
-            where: { id, shopId, deletedAt: null },
+            where: { id, shopId, deletedAt: null, archivedAt: null },
             data: { ...data, monthlyPayment: newMonthlyPayment },
           });
           if (!result.count) throw new NotFoundException('Customer nahi mila');
@@ -1231,20 +1486,20 @@ export class ShopService {
         if (!locked.length) throw new NotFoundException('Customer nahi mila');
 
         const customer = await tx.customer.findFirst({
-          where: { id, shopId, deletedAt: null },
+          where: { id, shopId, deletedAt: null, archivedAt: null },
           include: FULL,
         });
         if (!customer) throw new NotFoundException('Customer nahi mila');
         await this.saveBaseScheduleDate(tx, customer, firstDueDate);
 
         return tx.customer.updateMany({
-          where: { id, shopId, deletedAt: null },
+          where: { id, shopId, deletedAt: null, archivedAt: null },
           data,
         });
       });
     } else {
       result = await this.prisma.customer.updateMany({
-        where: { id, shopId, deletedAt: null },
+        where: { id, shopId, deletedAt: null, archivedAt: null },
         data,
       });
     }
@@ -1272,16 +1527,11 @@ export class ShopService {
 
       const c = await tx.customer.findFirst({
         where: { id, shopId, deletedAt: null },
-        include: FULL,
+        select: { ...LEAN_SELECT, fatherName: true, cnic: true },
       });
       if (!c) throw new NotFoundException('Customer nahi mila');
 
-      if (this.toListItem(c, todayIso()).status !== 'completed') {
-        throw new BadRequestException(
-          'Sirf wahi customer delete ho sakta hai jis ki saari qistein poori ho chuki hon',
-        );
-      }
-
+      const financial = this.financialOf(c, todayIso());
       const requestedAt = new Date();
       await tx.customer.update({
         where: { id: c.id },
@@ -1290,11 +1540,31 @@ export class ShopService {
       await this.audit.recordWithTx(tx, {
         actorType: 'shop',
         actorId: shopId,
-        action: 'CUSTOMER_DELETION_SCHEDULED',
+        action: 'CUSTOMER_DELETED',
         entityType: 'Customer',
         entityId: c.id,
         details: {
-          scheduledFor: new Date(requestedAt.getTime() + 24 * 60 * 60 * 1000),
+          snapshot: {
+            code: customerCode(c.customerNo),
+            name: c.name,
+            fatherName: c.fatherName,
+            phone: c.phone,
+            cnicLast4: c.cnic ? digits(c.cnic).slice(-4) : null,
+            totalPrice: financial.total,
+            remaining: financial.remaining,
+            totalPaid: financial.paid,
+            paymentsCount: c.payments.length,
+            itemNames: [
+              ...c.items.map((item) => item.name),
+              ...c.purchases.flatMap((purchase) =>
+                purchase.items.map((item) => item.name),
+              ),
+            ],
+            createdAt: c.createdAt,
+            archived: c.archivedAt !== null,
+            actor: { type: 'shop', id: shopId },
+            ip: meta?.ip ?? null,
+          },
         },
         ipAddress: meta?.ip,
         userAgent: meta?.userAgent,
@@ -1309,7 +1579,7 @@ export class ShopService {
     const field = this.docField(docKey);
 
     const existing = await this.prisma.customer.findFirst({
-      where: { id, shopId, deletedAt: null },
+      where: { id, shopId, deletedAt: null, archivedAt: null },
       select: { [field]: true } as any,
     });
     if (!existing) throw new NotFoundException('Customer nahi mila');
@@ -1324,7 +1594,7 @@ export class ShopService {
     data[field] = photoUrl;
 
     const result = await this.prisma.customer.updateMany({
-      where: { id, shopId, deletedAt: null },
+      where: { id, shopId, deletedAt: null, archivedAt: null },
       data,
     });
     if (!result.count) throw new NotFoundException('Customer nahi mila');
@@ -1336,7 +1606,7 @@ export class ShopService {
     const field = this.docField(docKey);
 
     const existing = await this.prisma.customer.findFirst({
-      where: { id, shopId, deletedAt: null },
+      where: { id, shopId, deletedAt: null, archivedAt: null },
       select: { [field]: true } as any,
     });
     if (!existing) throw new NotFoundException('Customer nahi mila');
@@ -1350,7 +1620,7 @@ export class ShopService {
     data[field] = null;
 
     const result = await this.prisma.customer.updateMany({
-      where: { id, shopId, deletedAt: null },
+      where: { id, shopId, deletedAt: null, archivedAt: null },
       data,
     });
     if (!result.count) throw new NotFoundException('Customer nahi mila');
@@ -1364,17 +1634,56 @@ export class ShopService {
   }
 
   /* ================= 14. STATUS (MONTH REPORT) ================= */
-  async status(shopId: string, month?: string) {
-    const customers = await this.loadAll(shopId);
+  async status(
+    shopId: string,
+    month?: string,
+  ): Promise<{ status: 'success'; data: StatusReportData }> {
     const reportMonth = month ?? currentMonth();
+    if (reportMonth < currentMonth()) {
+      const snapshot = await this.prisma.monthlyReportSnapshot.findUnique({
+        where: { shopId_month: { shopId, month: reportMonth } },
+      });
+      if (snapshot) {
+        if (!isStatusReportData(snapshot.data)) {
+          throw new InternalServerErrorException(
+            'Stored monthly report snapshot is invalid',
+          );
+        }
+        return ok(snapshot.data);
+      }
+      const data = await this.buildStatusData(shopId, reportMonth);
+      const saved = await this.prisma.monthlyReportSnapshot.upsert({
+        where: { shopId_month: { shopId, month: reportMonth } },
+        create: {
+          shopId,
+          month: reportMonth,
+          data: data as Prisma.InputJsonValue,
+        },
+        update: {},
+      });
+      if (!isStatusReportData(saved.data)) {
+        throw new InternalServerErrorException(
+          'Stored monthly report snapshot is invalid',
+        );
+      }
+      return ok(saved.data);
+    }
+    return ok(await this.buildStatusData(shopId, reportMonth));
+  }
+
+  async buildStatusData(
+    shopId: string,
+    reportMonth: string,
+  ): Promise<StatusReportData> {
+    const customers = await this.loadAll(shopId, undefined, true);
     const [year, monthNumber] = reportMonth.split('-').map(Number);
     const lastDay = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate();
     const reportEnd = `${reportMonth}-${String(lastDay).padStart(2, '0')}`;
     const [report, cashBreakdown] = await Promise.all([
       this.reportOf(customers, reportMonth, todayIso()),
-      this.cashInRange(shopId, `${reportMonth}-01`, reportEnd),
+      this.cashInRange(shopId, `${reportMonth}-01`, reportEnd, true),
     ]);
-    return ok({
+    return {
       ...report,
       cashCollected: cashBreakdown.total,
       cashBreakdown: {
@@ -1382,11 +1691,16 @@ export class ShopService {
         late: cashBreakdown.late,
         advance: cashBreakdown.advance,
       },
-    });
+    };
   }
 
-  private async cashInRange(shopId: string, fromIso: string, toIso: string) {
-    const customers = await this.loadAll(shopId);
+  private async cashInRange(
+    shopId: string,
+    fromIso: string,
+    toIso: string,
+    includeArchived = false,
+  ) {
+    const customers = await this.loadAll(shopId, undefined, includeArchived);
     const from = new Date(`${fromIso}T00:00:00+05:00`);
     const afterToIso = new Date(
       Date.parse(`${toIso}T00:00:00Z`) + 24 * 60 * 60 * 1000,
@@ -1414,8 +1728,16 @@ export class ShopService {
   }
 
   /* ================= helpers ================= */
-  private loadAll(shopId: string, search?: string): Promise<CustomerLean[]> {
-    const where: Prisma.CustomerWhereInput = { shopId, deletedAt: null };
+  private loadAll(
+    shopId: string,
+    search?: string,
+    includeArchived = false,
+  ): Promise<CustomerLean[]> {
+    const where: Prisma.CustomerWhereInput = {
+      shopId,
+      deletedAt: null,
+      ...(includeArchived ? {} : { archivedAt: null }),
+    };
 
     if (search) {
       const q = search.trim();
@@ -1441,9 +1763,18 @@ export class ShopService {
     });
   }
 
-  private async findFull(shopId: string, id: string): Promise<CustomerFull> {
+  private async findFull(
+    shopId: string,
+    id: string,
+    includeArchived = false,
+  ): Promise<CustomerFull> {
     const c = await this.prisma.customer.findFirst({
-      where: { id, shopId, deletedAt: null },
+      where: {
+        id,
+        shopId,
+        deletedAt: null,
+        ...(includeArchived ? {} : { archivedAt: null }),
+      },
       include: FULL,
     });
     if (!c) throw new NotFoundException('Customer nahi mila');
@@ -1599,8 +1930,9 @@ export class ShopService {
     const total = financial.total;
     const paid = financial.paid;
     const remaining = financial.remaining;
-    const status: CustomerStatus =
-      remaining <= 0
+    const status: CustomerStatus = c.archivedAt
+      ? 'archived'
+      : remaining <= 0
         ? 'completed'
         : rows.some((row) => row.status !== 'paid' && row.daysLate > 0)
           ? 'overdue'
@@ -1613,6 +1945,9 @@ export class ShopService {
       phone: formatMobile(c.phone),
       photo: c.photo ?? undefined,
       status,
+      archivedAt: c.archivedAt,
+      paid,
+      hasPayments: c.payments.length > 0,
       remaining,
       paidCount: rows.filter((r) => r.status === 'paid').length,
       totalCount: rows.length,
@@ -1682,6 +2017,7 @@ export class ShopService {
       downPayment: c.downPayment,
       monthly: c.monthlyPayment,
       monthlyTotal: financial.monthlyTotal,
+      hasPayments: c.payments.length > 0,
       firstDueDate: c.firstDueDate,
       items: c.items.map((i) => ({
         name: i.name,
@@ -1744,11 +2080,7 @@ export class ShopService {
       ...customer.payments.filter((item) => item.id !== payment.id),
       payment,
     ]
-      .filter(
-        (item) =>
-          !item.reversedAt ||
-          item.id === payment.id,
-      )
+      .filter((item) => !item.reversedAt || item.id === payment.id)
       .sort(
         (left, right) =>
           left.paidOn.getTime() - right.paidOn.getTime() ||
@@ -1769,9 +2101,7 @@ export class ShopService {
     const allocations = after.allocations
       .filter((allocation) => allocation.paymentId === payment.id)
       .map((allocation) => {
-        const plan = after.plans.find(
-          (item) => item.id === allocation.planKey,
-        );
+        const plan = after.plans.find((item) => item.id === allocation.planKey);
         return {
           ...(customer.purchases.length > 0 && plan
             ? { planLabel: plan.label }
@@ -1959,8 +2289,7 @@ export class ShopService {
             ),
             paidInstallments,
             lateInstallments,
-            pendingInstallments:
-              customerMonthRows.length - paidInstallments,
+            pendingInstallments: customerMonthRows.length - paidInstallments,
             paidInstallmentDates: paidRows.map((row) => row.dueDate),
             lateInstallmentDates: lateRows.map((row) => row.dueDate),
             pendingInstallmentDates: pendingRows.map((row) => row.dueDate),
