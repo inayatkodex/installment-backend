@@ -58,6 +58,21 @@ export class DeletionCleanupService implements OnModuleInit, OnModuleDestroy {
   async runCleanupNow() {
     await this.deleteExpiredCustomers(deletionRetentionCutoff());
     await this.deleteExpiredShops(shopDeletionRetentionCutoff());
+    await this.deleteExpiredMobileRefreshTokens();
+  }
+
+  private async deleteExpiredMobileRefreshTokens() {
+    const expired = await this.prisma.shopRefreshToken.findMany({
+      where: { sessionExpiresAt: { lte: new Date() } },
+      select: { id: true },
+      take: CLEANUP_BATCH_SIZE,
+      orderBy: { sessionExpiresAt: 'asc' },
+    });
+    if (expired.length === 0) return;
+
+    await this.prisma.shopRefreshToken.deleteMany({
+      where: { id: { in: expired.map(({ id }) => id) } },
+    });
   }
 
   private async deleteExpiredCustomers(cutoff: Date) {

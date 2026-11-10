@@ -401,6 +401,7 @@ export const ModelName = {
   FeeRecord: 'FeeRecord',
   ShopFeeRate: 'ShopFeeRate',
   Admin: 'Admin',
+  ShopRefreshToken: 'ShopRefreshToken',
   Customer: 'Customer',
   MonthlyReportSnapshot: 'MonthlyReportSnapshot',
   CustomerRateChange: 'CustomerRateChange',
@@ -427,7 +428,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "shop" | "feeRecord" | "shopFeeRate" | "admin" | "customer" | "monthlyReportSnapshot" | "customerRateChange" | "customerScheduleDateChange" | "customerPurchase" | "customerPurchaseScheduleDateChange" | "customerPurchaseRateChange" | "customerPurchaseItem" | "customerItem" | "payment" | "auditLog"
+    modelProps: "shop" | "feeRecord" | "shopFeeRate" | "admin" | "shopRefreshToken" | "customer" | "monthlyReportSnapshot" | "customerRateChange" | "customerScheduleDateChange" | "customerPurchase" | "customerPurchaseScheduleDateChange" | "customerPurchaseRateChange" | "customerPurchaseItem" | "customerItem" | "payment" | "auditLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -724,6 +725,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.AdminCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.AdminCountAggregateOutputType> | number
+        }
+      }
+    }
+    ShopRefreshToken: {
+      payload: Prisma.$ShopRefreshTokenPayload<ExtArgs>
+      fields: Prisma.ShopRefreshTokenFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ShopRefreshTokenFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShopRefreshTokenPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ShopRefreshTokenFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShopRefreshTokenPayload>
+        }
+        findFirst: {
+          args: Prisma.ShopRefreshTokenFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShopRefreshTokenPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ShopRefreshTokenFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShopRefreshTokenPayload>
+        }
+        findMany: {
+          args: Prisma.ShopRefreshTokenFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShopRefreshTokenPayload>[]
+        }
+        create: {
+          args: Prisma.ShopRefreshTokenCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShopRefreshTokenPayload>
+        }
+        createMany: {
+          args: Prisma.ShopRefreshTokenCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ShopRefreshTokenCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShopRefreshTokenPayload>[]
+        }
+        delete: {
+          args: Prisma.ShopRefreshTokenDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShopRefreshTokenPayload>
+        }
+        update: {
+          args: Prisma.ShopRefreshTokenUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShopRefreshTokenPayload>
+        }
+        deleteMany: {
+          args: Prisma.ShopRefreshTokenDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ShopRefreshTokenUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ShopRefreshTokenUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShopRefreshTokenPayload>[]
+        }
+        upsert: {
+          args: Prisma.ShopRefreshTokenUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ShopRefreshTokenPayload>
+        }
+        aggregate: {
+          args: Prisma.ShopRefreshTokenAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateShopRefreshToken>
+        }
+        groupBy: {
+          args: Prisma.ShopRefreshTokenGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ShopRefreshTokenGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ShopRefreshTokenCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ShopRefreshTokenCountAggregateOutputType> | number
         }
       }
     }
@@ -1647,6 +1722,25 @@ export const AdminScalarFieldEnum = {
 export type AdminScalarFieldEnum = (typeof AdminScalarFieldEnum)[keyof typeof AdminScalarFieldEnum]
 
 
+export const ShopRefreshTokenScalarFieldEnum = {
+  id: 'id',
+  shopId: 'shopId',
+  tokenHash: 'tokenHash',
+  familyId: 'familyId',
+  tokenVersion: 'tokenVersion',
+  expiresAt: 'expiresAt',
+  sessionExpiresAt: 'sessionExpiresAt',
+  revokedAt: 'revokedAt',
+  replacedById: 'replacedById',
+  refreshRetryUntil: 'refreshRetryUntil',
+  deviceName: 'deviceName',
+  lastUsedAt: 'lastUsedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type ShopRefreshTokenScalarFieldEnum = (typeof ShopRefreshTokenScalarFieldEnum)[keyof typeof ShopRefreshTokenScalarFieldEnum]
+
+
 export const CustomerScalarFieldEnum = {
   id: 'id',
   shopId: 'shopId',
@@ -2109,6 +2203,7 @@ export type GlobalOmitConfig = {
   feeRecord?: Prisma.FeeRecordOmit
   shopFeeRate?: Prisma.ShopFeeRateOmit
   admin?: Prisma.AdminOmit
+  shopRefreshToken?: Prisma.ShopRefreshTokenOmit
   customer?: Prisma.CustomerOmit
   monthlyReportSnapshot?: Prisma.MonthlyReportSnapshotOmit
   customerRateChange?: Prisma.CustomerRateChangeOmit

@@ -56,9 +56,14 @@ export type FeeRecord = Prisma.FeeRecordModel
 export type ShopFeeRate = Prisma.ShopFeeRateModel
 /**
  * Model Admin
- * 
+ *
  */
 export type Admin = Prisma.AdminModel
+/**
+ * Model ShopRefreshToken
+ *
+ */
+export type ShopRefreshToken = Prisma.ShopRefreshTokenModel
 /**
  * Model Customer
  * 

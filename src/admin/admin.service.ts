@@ -340,6 +340,7 @@ export class AdminService {
           deletionPreviousStatus: shop.status,
           pendingDeletionAt: requestedAt,
           status: 'archived',
+          tokenVersion: { increment: 1 },
         },
       });
       await this.audit.recordWithTx(tx, {
@@ -397,6 +398,9 @@ export class AdminService {
         data: {
           status: dto.status,
           statusNote: keepsNote ? reason || null : null,
+          ...(exists.status === 'active' && dto.status !== 'active'
+            ? { tokenVersion: { increment: 1 } }
+            : {}),
         },
       });
 

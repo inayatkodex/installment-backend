@@ -49,6 +49,7 @@ model Shop {
   feeRates               ShopFeeRate[]
   customers              Customer[]
   monthlyReportSnapshots MonthlyReportSnapshot[]
+  refreshTokens          ShopRefreshToken[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -97,6 +98,30 @@ model Admin {
   createdAt    DateTime @default(now())
 
   @@map("admins")
+}
+
+model ShopRefreshToken {
+  id                String             @id @default(uuid())
+  shopId            String
+  shop              Shop               @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  tokenHash         String             @unique
+  familyId          String
+  tokenVersion      Int
+  expiresAt         DateTime
+  sessionExpiresAt  DateTime
+  revokedAt         DateTime?
+  replacedById      String?
+  replacedBy        ShopRefreshToken?  @relation("ShopRefreshRotation", fields: [replacedById], references: [id], onDelete: SetNull)
+  replaces          ShopRefreshToken[] @relation("ShopRefreshRotation")
+  refreshRetryUntil DateTime?
+  deviceName        String?
+  lastUsedAt        DateTime?
+  createdAt         DateTime           @default(now())
+
+  @@index([shopId, sessionExpiresAt])
+  @@index([familyId])
+  @@index([expiresAt])
+  @@map("shop_refresh_tokens")
 }
 
 model Customer {

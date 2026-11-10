@@ -37,6 +37,8 @@ Completed customers are archived automatically seven days after completion, or m
 
 Closed-month status reports are saved in `monthly_report_snapshots` and returned unchanged on later reads. Apply the Prisma migrations before starting the application.
 
+Mobile shop sessions use `POST /api/shop-auth/mobile-login`, `POST /api/shop-auth/refresh`, and `POST /api/shop-auth/logout`. These routes are separate from the existing web shop login. Apply the new Prisma migration before deploying; mobile access tokens expire after 15 minutes, refresh tokens rotate with a 30-day idle expiry, and sessions have a 90-day absolute limit.
+
 ## Compile and run the project
 
 ```bash

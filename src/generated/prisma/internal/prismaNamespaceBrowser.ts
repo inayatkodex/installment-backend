@@ -55,6 +55,7 @@ export const ModelName = {
   FeeRecord: 'FeeRecord',
   ShopFeeRate: 'ShopFeeRate',
   Admin: 'Admin',
+  ShopRefreshToken: 'ShopRefreshToken',
   Customer: 'Customer',
   MonthlyReportSnapshot: 'MonthlyReportSnapshot',
   CustomerRateChange: 'CustomerRateChange',
@@ -149,6 +150,25 @@ export const AdminScalarFieldEnum = {
 } as const
 
 export type AdminScalarFieldEnum = (typeof AdminScalarFieldEnum)[keyof typeof AdminScalarFieldEnum]
+
+
+export const ShopRefreshTokenScalarFieldEnum = {
+  id: 'id',
+  shopId: 'shopId',
+  tokenHash: 'tokenHash',
+  familyId: 'familyId',
+  tokenVersion: 'tokenVersion',
+  expiresAt: 'expiresAt',
+  sessionExpiresAt: 'sessionExpiresAt',
+  revokedAt: 'revokedAt',
+  replacedById: 'replacedById',
+  refreshRetryUntil: 'refreshRetryUntil',
+  deviceName: 'deviceName',
+  lastUsedAt: 'lastUsedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type ShopRefreshTokenScalarFieldEnum = (typeof ShopRefreshTokenScalarFieldEnum)[keyof typeof ShopRefreshTokenScalarFieldEnum]
 
 
 export const CustomerScalarFieldEnum = {

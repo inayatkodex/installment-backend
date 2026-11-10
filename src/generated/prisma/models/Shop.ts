@@ -384,6 +384,7 @@ export type ShopWhereInput = {
   feeRates?: Prisma.ShopFeeRateListRelationFilter
   customers?: Prisma.CustomerListRelationFilter
   monthlyReportSnapshots?: Prisma.MonthlyReportSnapshotListRelationFilter
+  refreshTokens?: Prisma.ShopRefreshTokenListRelationFilter
 }
 
 export type ShopOrderByWithRelationInput = {
@@ -415,6 +416,7 @@ export type ShopOrderByWithRelationInput = {
   feeRates?: Prisma.ShopFeeRateOrderByRelationAggregateInput
   customers?: Prisma.CustomerOrderByRelationAggregateInput
   monthlyReportSnapshots?: Prisma.MonthlyReportSnapshotOrderByRelationAggregateInput
+  refreshTokens?: Prisma.ShopRefreshTokenOrderByRelationAggregateInput
 }
 
 export type ShopWhereUniqueInput = Prisma.AtLeast<{
@@ -449,6 +451,7 @@ export type ShopWhereUniqueInput = Prisma.AtLeast<{
   feeRates?: Prisma.ShopFeeRateListRelationFilter
   customers?: Prisma.CustomerListRelationFilter
   monthlyReportSnapshots?: Prisma.MonthlyReportSnapshotListRelationFilter
+  refreshTokens?: Prisma.ShopRefreshTokenListRelationFilter
 }, "id" | "shopNo" | "mobile">
 
 export type ShopOrderByWithAggregationInput = {
@@ -542,6 +545,7 @@ export type ShopCreateInput = {
   feeRates?: Prisma.ShopFeeRateCreateNestedManyWithoutShopInput
   customers?: Prisma.CustomerCreateNestedManyWithoutShopInput
   monthlyReportSnapshots?: Prisma.MonthlyReportSnapshotCreateNestedManyWithoutShopInput
+  refreshTokens?: Prisma.ShopRefreshTokenCreateNestedManyWithoutShopInput
 }
 
 export type ShopUncheckedCreateInput = {
@@ -573,6 +577,7 @@ export type ShopUncheckedCreateInput = {
   feeRates?: Prisma.ShopFeeRateUncheckedCreateNestedManyWithoutShopInput
   customers?: Prisma.CustomerUncheckedCreateNestedManyWithoutShopInput
   monthlyReportSnapshots?: Prisma.MonthlyReportSnapshotUncheckedCreateNestedManyWithoutShopInput
+  refreshTokens?: Prisma.ShopRefreshTokenUncheckedCreateNestedManyWithoutShopInput
 }
 
 export type ShopUpdateInput = {
@@ -603,6 +608,7 @@ export type ShopUpdateInput = {
   feeRates?: Prisma.ShopFeeRateUpdateManyWithoutShopNestedInput
   customers?: Prisma.CustomerUpdateManyWithoutShopNestedInput
   monthlyReportSnapshots?: Prisma.MonthlyReportSnapshotUpdateManyWithoutShopNestedInput
+  refreshTokens?: Prisma.ShopRefreshTokenUpdateManyWithoutShopNestedInput
 }
 
 export type ShopUncheckedUpdateInput = {
@@ -634,6 +640,7 @@ export type ShopUncheckedUpdateInput = {
   feeRates?: Prisma.ShopFeeRateUncheckedUpdateManyWithoutShopNestedInput
   customers?: Prisma.CustomerUncheckedUpdateManyWithoutShopNestedInput
   monthlyReportSnapshots?: Prisma.MonthlyReportSnapshotUncheckedUpdateManyWithoutShopNestedInput
+  refreshTokens?: Prisma.ShopRefreshTokenUncheckedUpdateManyWithoutShopNestedInput
 }
 
 export type ShopCreateManyInput = {
@@ -876,6 +883,20 @@ export type ShopUpdateOneRequiredWithoutFeeRatesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ShopUpdateToOneWithWhereWithoutFeeRatesInput, Prisma.ShopUpdateWithoutFeeRatesInput>, Prisma.ShopUncheckedUpdateWithoutFeeRatesInput>
 }
 
+export type ShopCreateNestedOneWithoutRefreshTokensInput = {
+  create?: Prisma.XOR<Prisma.ShopCreateWithoutRefreshTokensInput, Prisma.ShopUncheckedCreateWithoutRefreshTokensInput>
+  connectOrCreate?: Prisma.ShopCreateOrConnectWithoutRefreshTokensInput
+  connect?: Prisma.ShopWhereUniqueInput
+}
+
+export type ShopUpdateOneRequiredWithoutRefreshTokensNestedInput = {
+  create?: Prisma.XOR<Prisma.ShopCreateWithoutRefreshTokensInput, Prisma.ShopUncheckedCreateWithoutRefreshTokensInput>
+  connectOrCreate?: Prisma.ShopCreateOrConnectWithoutRefreshTokensInput
+  upsert?: Prisma.ShopUpsertWithoutRefreshTokensInput
+  connect?: Prisma.ShopWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ShopUpdateToOneWithWhereWithoutRefreshTokensInput, Prisma.ShopUpdateWithoutRefreshTokensInput>, Prisma.ShopUncheckedUpdateWithoutRefreshTokensInput>
+}
+
 export type ShopCreateNestedOneWithoutCustomersInput = {
   create?: Prisma.XOR<Prisma.ShopCreateWithoutCustomersInput, Prisma.ShopUncheckedCreateWithoutCustomersInput>
   connectOrCreate?: Prisma.ShopCreateOrConnectWithoutCustomersInput
@@ -932,6 +953,7 @@ export type ShopCreateWithoutFeeRecordsInput = {
   feeRates?: Prisma.ShopFeeRateCreateNestedManyWithoutShopInput
   customers?: Prisma.CustomerCreateNestedManyWithoutShopInput
   monthlyReportSnapshots?: Prisma.MonthlyReportSnapshotCreateNestedManyWithoutShopInput
+  refreshTokens?: Prisma.ShopRefreshTokenCreateNestedManyWithoutShopInput
 }
 
 export type ShopUncheckedCreateWithoutFeeRecordsInput = {
@@ -962,6 +984,7 @@ export type ShopUncheckedCreateWithoutFeeRecordsInput = {
   feeRates?: Prisma.ShopFeeRateUncheckedCreateNestedManyWithoutShopInput
   customers?: Prisma.CustomerUncheckedCreateNestedManyWithoutShopInput
   monthlyReportSnapshots?: Prisma.MonthlyReportSnapshotUncheckedCreateNestedManyWithoutShopInput
+  refreshTokens?: Prisma.ShopRefreshTokenUncheckedCreateNestedManyWithoutShopInput
 }
 
 export type ShopCreateOrConnectWithoutFeeRecordsInput = {
@@ -1007,6 +1030,7 @@ export type ShopUpdateWithoutFeeRecordsInput = {
   feeRates?: Prisma.ShopFeeRateUpdateManyWithoutShopNestedInput
   customers?: Prisma.CustomerUpdateManyWithoutShopNestedInput
   monthlyReportSnapshots?: Prisma.MonthlyReportSnapshotUpdateManyWithoutShopNestedInput
+  refreshTokens?: Prisma.ShopRefreshTokenUpdateManyWithoutShopNestedInput
 }
 
 export type ShopUncheckedUpdateWithoutFeeRecordsInput = {
@@ -1037,6 +1061,7 @@ export type ShopUncheckedUpdateWithoutFeeRecordsInput = {
   feeRates?: Prisma.ShopFeeRateUncheckedUpdateManyWithoutShopNestedInput
   customers?: Prisma.CustomerUncheckedUpdateManyWithoutShopNestedInput
   monthlyReportSnapshots?: Prisma.MonthlyReportSnapshotUncheckedUpdateManyWithoutShopNestedInput
+  refreshTokens?: Prisma.ShopRefreshTokenUncheckedUpdateManyWithoutShopNestedInput
 }
 
 export type ShopCreateWithoutFeeRatesInput = {
@@ -1067,6 +1092,7 @@ export type ShopCreateWithoutFeeRatesInput = {
   feeRecords?: Prisma.FeeRecordCreateNestedManyWithoutShopInput
   customers?: Prisma.CustomerCreateNestedManyWithoutShopInput
   monthlyReportSnapshots?: Prisma.MonthlyReportSnapshotCreateNestedManyWithoutShopInput
+  refreshTokens?: Prisma.ShopRefreshTokenCreateNestedManyWithoutShopInput
 }
 
 export type ShopUncheckedCreateWithoutFeeRatesInput = {
@@ -1097,6 +1123,7 @@ export type ShopUncheckedCreateWithoutFeeRatesInput = {
   feeRecords?: Prisma.FeeRecordUncheckedCreateNestedManyWithoutShopInput
   customers?: Prisma.CustomerUncheckedCreateNestedManyWithoutShopInput
   monthlyReportSnapshots?: Prisma.MonthlyReportSnapshotUncheckedCreateNestedManyWithoutShopInput
+  refreshTokens?: Prisma.ShopRefreshTokenUncheckedCreateNestedManyWithoutShopInput
 }
 
 export type ShopCreateOrConnectWithoutFeeRatesInput = {
@@ -1142,6 +1169,7 @@ export type ShopUpdateWithoutFeeRatesInput = {
   feeRecords?: Prisma.FeeRecordUpdateManyWithoutShopNestedInput
   customers?: Prisma.CustomerUpdateManyWithoutShopNestedInput
   monthlyReportSnapshots?: Prisma.MonthlyReportSnapshotUpdateManyWithoutShopNestedInput
+  refreshTokens?: Prisma.ShopRefreshTokenUpdateManyWithoutShopNestedInput
 }
 
 export type ShopUncheckedUpdateWithoutFeeRatesInput = {
@@ -1170,6 +1198,146 @@ export type ShopUncheckedUpdateWithoutFeeRatesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   feeRecords?: Prisma.FeeRecordUncheckedUpdateManyWithoutShopNestedInput
+  customers?: Prisma.CustomerUncheckedUpdateManyWithoutShopNestedInput
+  monthlyReportSnapshots?: Prisma.MonthlyReportSnapshotUncheckedUpdateManyWithoutShopNestedInput
+  refreshTokens?: Prisma.ShopRefreshTokenUncheckedUpdateManyWithoutShopNestedInput
+}
+
+export type ShopCreateWithoutRefreshTokensInput = {
+  id?: string
+  shopNo?: number
+  shopName: string
+  ownerName: string
+  mobile: string
+  email?: string | null
+  cnic: string
+  city: string
+  address: string
+  passwordHash: string
+  status?: $Enums.ShopStatus
+  statusNote?: string | null
+  pendingDeletionAt?: Date | string | null
+  deletionPreviousStatus?: $Enums.ShopStatus | null
+  tokenVersion?: number
+  monthlyFee?: number
+  customerSeq?: number
+  profilePic?: string | null
+  docPhoto?: string | null
+  docCnicFront?: string | null
+  docCnicBack?: string | null
+  docShopDocument?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  feeRecords?: Prisma.FeeRecordCreateNestedManyWithoutShopInput
+  feeRates?: Prisma.ShopFeeRateCreateNestedManyWithoutShopInput
+  customers?: Prisma.CustomerCreateNestedManyWithoutShopInput
+  monthlyReportSnapshots?: Prisma.MonthlyReportSnapshotCreateNestedManyWithoutShopInput
+}
+
+export type ShopUncheckedCreateWithoutRefreshTokensInput = {
+  id?: string
+  shopNo?: number
+  shopName: string
+  ownerName: string
+  mobile: string
+  email?: string | null
+  cnic: string
+  city: string
+  address: string
+  passwordHash: string
+  status?: $Enums.ShopStatus
+  statusNote?: string | null
+  pendingDeletionAt?: Date | string | null
+  deletionPreviousStatus?: $Enums.ShopStatus | null
+  tokenVersion?: number
+  monthlyFee?: number
+  customerSeq?: number
+  profilePic?: string | null
+  docPhoto?: string | null
+  docCnicFront?: string | null
+  docCnicBack?: string | null
+  docShopDocument?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  feeRecords?: Prisma.FeeRecordUncheckedCreateNestedManyWithoutShopInput
+  feeRates?: Prisma.ShopFeeRateUncheckedCreateNestedManyWithoutShopInput
+  customers?: Prisma.CustomerUncheckedCreateNestedManyWithoutShopInput
+  monthlyReportSnapshots?: Prisma.MonthlyReportSnapshotUncheckedCreateNestedManyWithoutShopInput
+}
+
+export type ShopCreateOrConnectWithoutRefreshTokensInput = {
+  where: Prisma.ShopWhereUniqueInput
+  create: Prisma.XOR<Prisma.ShopCreateWithoutRefreshTokensInput, Prisma.ShopUncheckedCreateWithoutRefreshTokensInput>
+}
+
+export type ShopUpsertWithoutRefreshTokensInput = {
+  update: Prisma.XOR<Prisma.ShopUpdateWithoutRefreshTokensInput, Prisma.ShopUncheckedUpdateWithoutRefreshTokensInput>
+  create: Prisma.XOR<Prisma.ShopCreateWithoutRefreshTokensInput, Prisma.ShopUncheckedCreateWithoutRefreshTokensInput>
+  where?: Prisma.ShopWhereInput
+}
+
+export type ShopUpdateToOneWithWhereWithoutRefreshTokensInput = {
+  where?: Prisma.ShopWhereInput
+  data: Prisma.XOR<Prisma.ShopUpdateWithoutRefreshTokensInput, Prisma.ShopUncheckedUpdateWithoutRefreshTokensInput>
+}
+
+export type ShopUpdateWithoutRefreshTokensInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  shopName?: Prisma.StringFieldUpdateOperationsInput | string
+  ownerName?: Prisma.StringFieldUpdateOperationsInput | string
+  mobile?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cnic?: Prisma.StringFieldUpdateOperationsInput | string
+  city?: Prisma.StringFieldUpdateOperationsInput | string
+  address?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumShopStatusFieldUpdateOperationsInput | $Enums.ShopStatus
+  statusNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingDeletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionPreviousStatus?: Prisma.NullableEnumShopStatusFieldUpdateOperationsInput | $Enums.ShopStatus | null
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  monthlyFee?: Prisma.IntFieldUpdateOperationsInput | number
+  customerSeq?: Prisma.IntFieldUpdateOperationsInput | number
+  profilePic?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  docPhoto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  docCnicFront?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  docCnicBack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  docShopDocument?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  feeRecords?: Prisma.FeeRecordUpdateManyWithoutShopNestedInput
+  feeRates?: Prisma.ShopFeeRateUpdateManyWithoutShopNestedInput
+  customers?: Prisma.CustomerUpdateManyWithoutShopNestedInput
+  monthlyReportSnapshots?: Prisma.MonthlyReportSnapshotUpdateManyWithoutShopNestedInput
+}
+
+export type ShopUncheckedUpdateWithoutRefreshTokensInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  shopNo?: Prisma.IntFieldUpdateOperationsInput | number
+  shopName?: Prisma.StringFieldUpdateOperationsInput | string
+  ownerName?: Prisma.StringFieldUpdateOperationsInput | string
+  mobile?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cnic?: Prisma.StringFieldUpdateOperationsInput | string
+  city?: Prisma.StringFieldUpdateOperationsInput | string
+  address?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumShopStatusFieldUpdateOperationsInput | $Enums.ShopStatus
+  statusNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingDeletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionPreviousStatus?: Prisma.NullableEnumShopStatusFieldUpdateOperationsInput | $Enums.ShopStatus | null
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  monthlyFee?: Prisma.IntFieldUpdateOperationsInput | number
+  customerSeq?: Prisma.IntFieldUpdateOperationsInput | number
+  profilePic?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  docPhoto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  docCnicFront?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  docCnicBack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  docShopDocument?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  feeRecords?: Prisma.FeeRecordUncheckedUpdateManyWithoutShopNestedInput
+  feeRates?: Prisma.ShopFeeRateUncheckedUpdateManyWithoutShopNestedInput
   customers?: Prisma.CustomerUncheckedUpdateManyWithoutShopNestedInput
   monthlyReportSnapshots?: Prisma.MonthlyReportSnapshotUncheckedUpdateManyWithoutShopNestedInput
 }
@@ -1202,6 +1370,7 @@ export type ShopCreateWithoutCustomersInput = {
   feeRecords?: Prisma.FeeRecordCreateNestedManyWithoutShopInput
   feeRates?: Prisma.ShopFeeRateCreateNestedManyWithoutShopInput
   monthlyReportSnapshots?: Prisma.MonthlyReportSnapshotCreateNestedManyWithoutShopInput
+  refreshTokens?: Prisma.ShopRefreshTokenCreateNestedManyWithoutShopInput
 }
 
 export type ShopUncheckedCreateWithoutCustomersInput = {
@@ -1232,6 +1401,7 @@ export type ShopUncheckedCreateWithoutCustomersInput = {
   feeRecords?: Prisma.FeeRecordUncheckedCreateNestedManyWithoutShopInput
   feeRates?: Prisma.ShopFeeRateUncheckedCreateNestedManyWithoutShopInput
   monthlyReportSnapshots?: Prisma.MonthlyReportSnapshotUncheckedCreateNestedManyWithoutShopInput
+  refreshTokens?: Prisma.ShopRefreshTokenUncheckedCreateNestedManyWithoutShopInput
 }
 
 export type ShopCreateOrConnectWithoutCustomersInput = {
@@ -1277,6 +1447,7 @@ export type ShopUpdateWithoutCustomersInput = {
   feeRecords?: Prisma.FeeRecordUpdateManyWithoutShopNestedInput
   feeRates?: Prisma.ShopFeeRateUpdateManyWithoutShopNestedInput
   monthlyReportSnapshots?: Prisma.MonthlyReportSnapshotUpdateManyWithoutShopNestedInput
+  refreshTokens?: Prisma.ShopRefreshTokenUpdateManyWithoutShopNestedInput
 }
 
 export type ShopUncheckedUpdateWithoutCustomersInput = {
@@ -1307,6 +1478,7 @@ export type ShopUncheckedUpdateWithoutCustomersInput = {
   feeRecords?: Prisma.FeeRecordUncheckedUpdateManyWithoutShopNestedInput
   feeRates?: Prisma.ShopFeeRateUncheckedUpdateManyWithoutShopNestedInput
   monthlyReportSnapshots?: Prisma.MonthlyReportSnapshotUncheckedUpdateManyWithoutShopNestedInput
+  refreshTokens?: Prisma.ShopRefreshTokenUncheckedUpdateManyWithoutShopNestedInput
 }
 
 export type ShopCreateWithoutMonthlyReportSnapshotsInput = {
@@ -1337,6 +1509,7 @@ export type ShopCreateWithoutMonthlyReportSnapshotsInput = {
   feeRecords?: Prisma.FeeRecordCreateNestedManyWithoutShopInput
   feeRates?: Prisma.ShopFeeRateCreateNestedManyWithoutShopInput
   customers?: Prisma.CustomerCreateNestedManyWithoutShopInput
+  refreshTokens?: Prisma.ShopRefreshTokenCreateNestedManyWithoutShopInput
 }
 
 export type ShopUncheckedCreateWithoutMonthlyReportSnapshotsInput = {
@@ -1367,6 +1540,7 @@ export type ShopUncheckedCreateWithoutMonthlyReportSnapshotsInput = {
   feeRecords?: Prisma.FeeRecordUncheckedCreateNestedManyWithoutShopInput
   feeRates?: Prisma.ShopFeeRateUncheckedCreateNestedManyWithoutShopInput
   customers?: Prisma.CustomerUncheckedCreateNestedManyWithoutShopInput
+  refreshTokens?: Prisma.ShopRefreshTokenUncheckedCreateNestedManyWithoutShopInput
 }
 
 export type ShopCreateOrConnectWithoutMonthlyReportSnapshotsInput = {
@@ -1412,6 +1586,7 @@ export type ShopUpdateWithoutMonthlyReportSnapshotsInput = {
   feeRecords?: Prisma.FeeRecordUpdateManyWithoutShopNestedInput
   feeRates?: Prisma.ShopFeeRateUpdateManyWithoutShopNestedInput
   customers?: Prisma.CustomerUpdateManyWithoutShopNestedInput
+  refreshTokens?: Prisma.ShopRefreshTokenUpdateManyWithoutShopNestedInput
 }
 
 export type ShopUncheckedUpdateWithoutMonthlyReportSnapshotsInput = {
@@ -1442,6 +1617,7 @@ export type ShopUncheckedUpdateWithoutMonthlyReportSnapshotsInput = {
   feeRecords?: Prisma.FeeRecordUncheckedUpdateManyWithoutShopNestedInput
   feeRates?: Prisma.ShopFeeRateUncheckedUpdateManyWithoutShopNestedInput
   customers?: Prisma.CustomerUncheckedUpdateManyWithoutShopNestedInput
+  refreshTokens?: Prisma.ShopRefreshTokenUncheckedUpdateManyWithoutShopNestedInput
 }
 
 
@@ -1454,6 +1630,7 @@ export type ShopCountOutputType = {
   feeRates: number
   customers: number
   monthlyReportSnapshots: number
+  refreshTokens: number
 }
 
 export type ShopCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1461,6 +1638,7 @@ export type ShopCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   feeRates?: boolean | ShopCountOutputTypeCountFeeRatesArgs
   customers?: boolean | ShopCountOutputTypeCountCustomersArgs
   monthlyReportSnapshots?: boolean | ShopCountOutputTypeCountMonthlyReportSnapshotsArgs
+  refreshTokens?: boolean | ShopCountOutputTypeCountRefreshTokensArgs
 }
 
 /**
@@ -1501,6 +1679,13 @@ export type ShopCountOutputTypeCountMonthlyReportSnapshotsArgs<ExtArgs extends r
   where?: Prisma.MonthlyReportSnapshotWhereInput
 }
 
+/**
+ * ShopCountOutputType without action
+ */
+export type ShopCountOutputTypeCountRefreshTokensArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ShopRefreshTokenWhereInput
+}
+
 
 export type ShopSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1531,6 +1716,7 @@ export type ShopSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   feeRates?: boolean | Prisma.Shop$feeRatesArgs<ExtArgs>
   customers?: boolean | Prisma.Shop$customersArgs<ExtArgs>
   monthlyReportSnapshots?: boolean | Prisma.Shop$monthlyReportSnapshotsArgs<ExtArgs>
+  refreshTokens?: boolean | Prisma.Shop$refreshTokensArgs<ExtArgs>
   _count?: boolean | Prisma.ShopCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["shop"]>
 
@@ -1621,6 +1807,7 @@ export type ShopInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   feeRates?: boolean | Prisma.Shop$feeRatesArgs<ExtArgs>
   customers?: boolean | Prisma.Shop$customersArgs<ExtArgs>
   monthlyReportSnapshots?: boolean | Prisma.Shop$monthlyReportSnapshotsArgs<ExtArgs>
+  refreshTokens?: boolean | Prisma.Shop$refreshTokensArgs<ExtArgs>
   _count?: boolean | Prisma.ShopCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ShopIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1633,6 +1820,7 @@ export type $ShopPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     feeRates: Prisma.$ShopFeeRatePayload<ExtArgs>[]
     customers: Prisma.$CustomerPayload<ExtArgs>[]
     monthlyReportSnapshots: Prisma.$MonthlyReportSnapshotPayload<ExtArgs>[]
+    refreshTokens: Prisma.$ShopRefreshTokenPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2057,6 +2245,7 @@ export interface Prisma__ShopClient<T, Null = never, ExtArgs extends runtime.Typ
   feeRates<T extends Prisma.Shop$feeRatesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Shop$feeRatesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ShopFeeRatePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   customers<T extends Prisma.Shop$customersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Shop$customersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CustomerPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   monthlyReportSnapshots<T extends Prisma.Shop$monthlyReportSnapshotsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Shop$monthlyReportSnapshotsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MonthlyReportSnapshotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  refreshTokens<T extends Prisma.Shop$refreshTokensArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Shop$refreshTokensArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ShopRefreshTokenPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2596,6 +2785,30 @@ export type Shop$monthlyReportSnapshotsArgs<ExtArgs extends runtime.Types.Extens
   take?: number
   skip?: number
   distinct?: Prisma.MonthlyReportSnapshotScalarFieldEnum | Prisma.MonthlyReportSnapshotScalarFieldEnum[]
+}
+
+/**
+ * Shop.refreshTokens
+ */
+export type Shop$refreshTokensArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ShopRefreshToken
+   */
+  select?: Prisma.ShopRefreshTokenSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ShopRefreshToken
+   */
+  omit?: Prisma.ShopRefreshTokenOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ShopRefreshTokenInclude<ExtArgs> | null
+  where?: Prisma.ShopRefreshTokenWhereInput
+  orderBy?: Prisma.ShopRefreshTokenOrderByWithRelationInput | Prisma.ShopRefreshTokenOrderByWithRelationInput[]
+  cursor?: Prisma.ShopRefreshTokenWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ShopRefreshTokenScalarFieldEnum | Prisma.ShopRefreshTokenScalarFieldEnum[]
 }
 
 /**
