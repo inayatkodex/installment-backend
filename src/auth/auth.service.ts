@@ -65,14 +65,7 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
-    const [profilePic, docPhoto, docCnicFront, docCnicBack, docShopDocument] =
-      await Promise.all([
-        this.storage.saveBase64(dto.profilePic, 'shops'),
-        this.storage.saveBase64(dto.documents?.photo, 'documents'),
-        this.storage.saveBase64(dto.documents?.cnicFront, 'documents'),
-        this.storage.saveBase64(dto.documents?.cnicBack, 'documents'),
-        this.storage.saveBase64(dto.documents?.shopDocument, 'documents'),
-      ]);
+    const profilePic = await this.storage.saveBase64(dto.profilePic, 'shops');
 
     try {
       await this.prisma.shop.create({
@@ -86,10 +79,6 @@ export class AuthService {
           address: dto.address.trim(),
           passwordHash,
           profilePic,
-          docPhoto,
-          docCnicFront,
-          docCnicBack,
-          docShopDocument,
           // status default: pending (admin approve karega)
         },
       });
