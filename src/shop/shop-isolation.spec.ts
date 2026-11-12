@@ -712,7 +712,7 @@ describe('Shop Data Isolation & Authorization Guards (PostgreSQL Integration)', 
 
     it('Shop B customer list does not include Shop A customers', async () => {
       const res = await shopService.listCustomers(shopBId, {});
-      expect(res.data.some((c) => c.id === customerAId)).toBe(false);
+      expect(res.data.items.some((c: { id: string }) => c.id === customerAId)).toBe(false);
     });
   });
 

@@ -56,6 +56,8 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, document);
 
-  await app.listen(process.env.PORT ?? 3001);
+  // '0.0.0.0' lets the app accept connections from all network interfaces
+  // (Wi-Fi, USB, emulator) — required for mobile app to reach the backend.
+  await app.listen(process.env.PORT ?? 3001, '0.0.0.0');
 }
 bootstrap();

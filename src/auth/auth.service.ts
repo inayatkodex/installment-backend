@@ -306,24 +306,6 @@ export class AuthService {
           session.id,
           nextId,
         );
-        const claimed = await tx.shopRefreshToken.updateMany({
-          where: {
-            id: session.id,
-            revokedAt: null,
-            replacedById: null,
-            expiresAt: { gt: now },
-            sessionExpiresAt: { gt: now },
-          },
-          data: {
-            revokedAt: now,
-            replacedById: nextId,
-            refreshRetryUntil: new Date(now.getTime() + REFRESH_RETRY_GRACE_MS),
-            lastUsedAt: now,
-          },
-        });
-
-        if (claimed.count !== 1) continue;
-
         const expiresAt = new Date(
           Math.min(
             now.getTime() + MOBILE_REFRESH_TOKEN_TTL_MS,
@@ -342,6 +324,27 @@ export class AuthService {
             deviceName: session.deviceName,
           },
         });
+
+        const claimed = await tx.shopRefreshToken.updateMany({
+          where: {
+            id: session.id,
+            revokedAt: null,
+            replacedById: null,
+            expiresAt: { gt: now },
+            sessionExpiresAt: { gt: now },
+          },
+          data: {
+            revokedAt: now,
+            replacedById: nextId,
+            refreshRetryUntil: new Date(now.getTime() + REFRESH_RETRY_GRACE_MS),
+            lastUsedAt: now,
+          },
+        });
+
+        if (claimed.count !== 1) {
+          await tx.shopRefreshToken.delete({ where: { id: nextId } });
+          continue;
+        }
 
         return {
           kind: 'success' as const,

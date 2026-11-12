@@ -682,13 +682,20 @@ export class ShopService {
   async listCustomers(shopId: string, q: ListCustomersQueryDto) {
     const today = todayIso();
     const searchRaw = (q.search ?? '').trim();
+    const limit = q.limit ?? 20;
+    const page  = q.page  ?? 1;
 
     const customers = await this.loadAll(shopId, searchRaw || undefined);
-    const items = customers
+    const filtered = customers
       .map((c) => this.toListItem(c, today))
       .filter((c) => !q.status || q.status === 'all' || c.status === q.status);
 
-    return ok(items);
+    const total  = filtered.length;
+    const skip   = (page - 1) * limit;
+    const items  = filtered.slice(skip, skip + limit);
+    const hasMore = skip + items.length < total;
+
+    return ok({ items, hasMore, total, page, limit });
   }
 
   async listArchivedCustomers(shopId: string) {

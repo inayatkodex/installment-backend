@@ -41,6 +41,9 @@ describe('AuthService mobile sessions', () => {
           data: Record<string, unknown>;
         }): Promise<unknown> => ({}),
       ),
+      delete: jest.fn(
+        async (_args: { where: { id: string } }): Promise<unknown> => ({}),
+      ),
     },
   };
   const transaction = jest.fn(
@@ -76,6 +79,7 @@ describe('AuthService mobile sessions', () => {
     tx.shopRefreshToken.count.mockReset().mockResolvedValue(1);
     tx.shopRefreshToken.updateMany.mockReset().mockResolvedValue({ count: 1 });
     tx.shopRefreshToken.create.mockReset().mockResolvedValue({});
+    tx.shopRefreshToken.delete.mockReset().mockResolvedValue({});
     transaction.mockClear();
   });
 
@@ -135,6 +139,9 @@ describe('AuthService mobile sessions', () => {
     const first = await service.refreshShopSession(REFRESH_TOKEN);
     const successorId = tx.shopRefreshToken.create.mock.calls[0][0].data
       .id as string;
+    expect(tx.shopRefreshToken.create.mock.invocationCallOrder[0]).toBeLessThan(
+      tx.shopRefreshToken.updateMany.mock.invocationCallOrder[0],
+    );
     const nextToken = first.data.refresh_token;
     expect(nextToken).toBe(
       ROTATE_TOKEN(REFRESH_TOKEN, 'previous-id', successorId),
@@ -161,6 +168,42 @@ describe('AuthService mobile sessions', () => {
     expect(first.data.access_token).toBeTruthy();
     expect(retry.data.access_token).toBeTruthy();
     expect(tx.shopRefreshToken.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('removes an unclaimed successor when another refresh wins the rotation', async () => {
+    const now = new Date();
+    const session = {
+      id: 'previous-id',
+      shopId: shop.id,
+      tokenHash: TOKEN_HASH(REFRESH_TOKEN),
+      familyId: 'family-1',
+      tokenVersion: shop.tokenVersion,
+      expiresAt: new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000),
+      sessionExpiresAt: new Date(now.getTime() + 80 * 24 * 60 * 60 * 1000),
+      revokedAt: null,
+      replacedById: null,
+      refreshRetryUntil: null,
+      deviceName: null,
+      lastUsedAt: null,
+      shop,
+    };
+    tx.shopRefreshToken.findUnique
+      .mockResolvedValueOnce(session)
+      .mockResolvedValueOnce({
+        ...session,
+        revokedAt: new Date(),
+        replacedById: 'winning-successor',
+      });
+    tx.shopRefreshToken.updateMany.mockResolvedValueOnce({ count: 0 });
+
+    await expect(service.refreshShopSession(REFRESH_TOKEN)).rejects.toThrow(
+      'Aap ka mobile session khatam ho gaya, dobara login karein',
+    );
+    const createdId = tx.shopRefreshToken.create.mock.calls[0][0].data
+      .id as string;
+    expect(tx.shopRefreshToken.delete).toHaveBeenCalledWith({
+      where: { id: createdId },
+    });
   });
 
   it('returns the latest active token when a grace retry follows another rotation', async () => {
