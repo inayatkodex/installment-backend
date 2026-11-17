@@ -47,7 +47,7 @@ async function bootstrap() {
 
   // ---------- Swagger ----------
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('Installment Pro API')
+    .setTitle('QistPro API')
     .setDescription('Shopkeeper aur Admin portal ki APIs')
     .setVersion('1.0')
     .addBearerAuth()

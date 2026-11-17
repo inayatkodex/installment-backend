@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
+  <img src="../installment-frontend/public/qistpro-logos/svg/01-logo-primary.svg" width="260" alt="QistPro" />
 </p>
 
 [circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
@@ -21,15 +21,27 @@
   <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
   [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
-## Description
+## QistPro Backend
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+NestJS REST API for the QistPro shopkeeper mobile/web apps and super-admin portal.
+The API is served under `/api`, with interactive Swagger documentation at `/docs`.
 
-## Project setup
+## Setup
 
 ```bash
-$ npm install
+npm install
 ```
+
+Configure PostgreSQL using the environment variables expected by `prisma.config.ts`,
+apply the Prisma migrations, then start the API:
+
+```bash
+npx prisma migrate deploy
+npm run start:dev
+```
+
+The development server listens on port `3001` by default. Run unit and end-to-end
+tests with `npm test` and `npm run test:e2e`.
 
 ## Customer data lifecycle
 

@@ -1,7 +1,7 @@
 {
-  "name": "installment-backend",
+  "name": "qistpro-backend",
   "version": "0.0.1",
-  "description": "",
+  "description": "QistPro REST API for shop and admin applications.",
   "author": "",
   "private": true,
   "license": "UNLICENSED",
